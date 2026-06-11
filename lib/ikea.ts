@@ -77,8 +77,8 @@ function normalizeProducts(data: unknown): IkeaProduct[] {
         type: pickString(r, ["type", "category", "product_type"]) || "",
         price: pickNumber(r, ["price", "amount", "current_price", "price_value"]) ?? 0,
         currency: pickString(r, ["currency", "currency_code"]) || "EUR",
-        imageUrl: pickString(r, ["imageUrl", "image", "image_url", "thumbnail", "img"]) || "",
-        productUrl: pickString(r, ["productUrl", "url", "link", "product_url"]) || "",
+        imageUrl: pickString(r, ["imageUrl", "image", "image_url", "thumbnail", "img"]) || ph(name),
+        productUrl: pickString(r, ["productUrl", "url", "link", "product_url"]) || ikea(name),
       };
     })
     .filter((p): p is IkeaProduct => p !== null);
@@ -212,12 +212,29 @@ function mockSearch(query: string): IkeaProduct[] {
 }
 
 function ph(label: string): string {
-  // Lightweight placeholder image so the board renders without external assets.
-  return `https://placehold.co/400x400/eef2f5/64748b?text=${encodeURIComponent(label)}`;
+  // Self-contained SVG placeholder (inline data URI) — renders with no external
+  // request, so it works even when image CDNs are blocked on the network.
+  const text = escapeXml(label.slice(0, 22));
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400">` +
+    `<rect width="400" height="400" fill="#e7f0f8"/>` +
+    `<rect x="0" y="0" width="400" height="8" fill="#0058a3"/>` +
+    `<text x="200" y="210" font-family="Arial, sans-serif" font-size="24" font-weight="bold" ` +
+    `fill="#0058a3" text-anchor="middle">${text}</text>` +
+    `</svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
-function ikea(slugName: string): string {
-  return `https://www.ikea.com/search/?q=${encodeURIComponent(slugName)}`;
+function ikea(term: string): string {
+  // IKEA Belgium store search (English locale). Works for product names and
+  // generic terms alike; lands on the BE product results page.
+  return `https://www.ikea.com/be/en/search/?q=${encodeURIComponent(term)}`;
+}
+
+function escapeXml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 function slug(s: string): string {
