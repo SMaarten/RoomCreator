@@ -1,65 +1,81 @@
-# RoomCreator
+# RoomKreator
 
-Take or upload a photo of a room, pick a decorating style, and get IKEA
-furnishing recommendations tailored to your space. Room analysis is done by
-Claude vision; product data comes from a [parse.bot](https://parse.bot) IKEA
-API (with a built-in mock catalog so the app works before you connect one).
+Richt een kamer in met IKEA-meubels die echt passen. Je uploadt foto's,
+geeft de maten, deuren en ramen op, en krijgt een ontwerp op schaal met een
+boodschappenlijst van IKEA België, binnen je budget.
 
-## How it works
+**Live:** https://smaarten.github.io/RoomCreator/
 
-1. You upload/snap a room photo and choose a style (Scandinavian, Japandi, …).
-2. The photo + style go to `POST /api/design`.
-3. Claude (`claude-opus-4-8`, vision + structured outputs) reads the room —
-   room type, palette, existing pieces — and proposes 5–8 IKEA items with a
-   generic search term and a one-line rationale each.
-4. Each search term is looked up against your parse.bot IKEA API.
-5. The client renders a design board: room analysis, recommended pieces with
-   matching products, and an estimated total.
+## Hoe het werkt
+
+1. **Foto's**: tot zes foto's van de kamer, verkleind in de browser.
+2. **Afmetingen**: breedte, diepte en hoogte, plus deuren, ramen, radiatoren
+   en doorgangen per wand. De plattegrond tekent live mee.
+3. **Wat staat er nu**: Claude bekijkt de foto's en lijst de bestaande meubels
+   op. Per stuk kies je *houden* of *vervangen*.
+4. **Wensen**: gebruik van de kamer, stijl, budget en vrije opmerkingen.
+5. **Ontwerp**: Claude zoekt zelf in de actuele IKEA-catalogus (be/nl),
+   controleert afmetingen en budget, en plaatst alles op de plattegrond.
+   Daarna kan je bijsturen in gewone taal ("goedkopere zetel", "meer
+   opbergruimte") en optioneel een fotorealistische impressie laten maken
+   met Gemini.
 
 ```
-Browser ──photo+style──▶ /api/design ──▶ lib/anthropic (Claude vision)
-                                     └──▶ lib/ikea (parse.bot or mock)
+Browser ──foto's + maten──▶ Claude (claude-opus-5-5, vision + tool use)
+                               │  search_ikea("zitbank 3-zits")
+                               ▼
+                         IKEA zoek-API (be/nl, echte prijzen en maten)
+                               │
+                               ▼
+              JSON-ontwerp ──▶ plattegrond op schaal + productlijst
+                               └──▶ Gemini (optioneel) → "na"-foto
 ```
 
-## Setup
+Waarborgen:
+
+- Claude mag enkel producten kiezen die uit een IKEA-zoekopdracht kwamen.
+  Naam, prijs, foto en link komen uit IKEA's data, niet uit de tekst van het
+  model; verzonnen artikelnummers worden weggelaten en gemeld.
+- Een lay-outcontrole markeert meubels die buiten de kamer vallen, elkaar
+  overlappen of in de draaicirkel van een deur staan.
+
+## Sleutels en kosten
+
+De app is een statische site zonder server. Je vult je eigen sleutels in bij
+**Instellingen**; ze worden alleen in je browser bewaard (IndexedDB) en gaan
+rechtstreeks naar Anthropic en Google.
+
+| Sleutel | Nodig | Waar |
+| --- | --- | --- |
+| Anthropic API | ja | https://console.anthropic.com/settings/keys |
+| Gemini API | nee, enkel voor de "na"-foto | https://aistudio.google.com/apikey |
+
+Een volledig ontwerp kost doorgaans enkele tientallen eurocent aan
+Anthropic-tegoed (foto's + een tiental zoekopdrachten).
+
+## Lokaal draaien
 
 ```bash
 npm install
-cp .env.example .env
-# fill in ANTHROPIC_API_KEY (required) and parse.bot details (optional)
-npm run dev
+npm run dev     # http://localhost:5173/RoomCreator/
+npm run build   # typecheck + productiebuild in dist/
 ```
 
-Open http://localhost:3000.
+## Publiceren
 
-### Environment variables
+Elke push naar `main` bouwt de site en zet ze op GitHub Pages via
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). Eenmalig:
+*Settings → Pages → Source: GitHub Actions*.
 
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `ANTHROPIC_API_KEY` | yes | Claude vision room analysis |
-| `PARSE_BOT_API_KEY` | no | parse.bot key (`pmx_…`); omit to use mock IKEA data |
-| `PARSE_BOT_SCRAPER_ID` | no | Your parse.bot scraper id |
-| `PARSE_BOT_SEARCH_ENDPOINT` | no | Search endpoint name (default `search_products`) |
-| `PARSE_BOT_QUERY_PARAM` | no | JSON field your endpoint expects the term in (default `query`) |
+## Code
 
-Without parse.bot credentials the app runs fully on a curated mock catalog and
-shows a "sample products" banner.
+| Bestand | Rol |
+| --- | --- |
+| [`src/lib/claude.ts`](src/lib/claude.ts) | Foto-analyse en de ontwerp-lus met de `search_ikea`-tool |
+| [`src/lib/ikea.ts`](src/lib/ikea.ts) | IKEA België zoek-API |
+| [`src/lib/gemini.ts`](src/lib/gemini.ts) | "Na"-foto via Gemini-beeldbewerking |
+| [`src/lib/layout.ts`](src/lib/layout.ts) | Lay-outcontrole (buiten de kamer, overlap, deuren) |
+| [`src/components/FloorPlan.tsx`](src/components/FloorPlan.tsx) | Plattegrond op schaal (SVG) |
+| [`src/App.tsx`](src/App.tsx) | Stappen, status en opslag |
 
-## Connecting parse.bot
-
-1. At [parse.bot](https://parse.bot), build an API over IKEA's product search —
-   one endpoint that takes a search term and returns product rows.
-2. Note the scraper id, endpoint name, and your `pmx_` key; put them in `.env`.
-3. The endpoint is called as:
-   `POST https://api.parse.bot/scraper/{SCRAPER_ID}/{ENDPOINT}` with header
-   `X-API-Key` and body `{ "<query param>": "<search term>" }`.
-4. parse.bot response fields are mapped to products in
-   [`lib/ikea.ts`](lib/ikea.ts) → `normalizeProducts`. It tries common field
-   names (`name`/`title`, `price`, `image`/`imageUrl`, `url`/`link`); tweak it
-   to match your endpoint's exact output.
-
-## Tech
-
-- Next.js 15 (App Router) + TypeScript
-- `@anthropic-ai/sdk` — Claude vision, adaptive thinking, structured outputs
-- API keys stay server-side in the route handler; nothing secret reaches the browser.
+Vite + React + TypeScript, `@anthropic-ai/sdk` in de browser.
