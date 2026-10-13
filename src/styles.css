@@ -622,3 +622,15 @@ textarea { width: 100%; resize: vertical; }
 .log-table td { white-space: nowrap; }
 .prices input { width: 5.5rem; text-align: right; padding: 0.25rem 0.4rem; font-variant-numeric: tabular-nums; }
 .admin a.btn { text-decoration: none; }
+
+/* ---------- impression setup ---------- */
+
+.after-setup { display: flex; flex-direction: column; gap: 0.5rem; margin: 0.25rem 0 1rem; }
+.strong { font-weight: 700; }
+.after-photos { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.after-photos button { all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.75rem; color: var(--ink-soft); }
+.after-photos img { width: 96px; height: 72px; object-fit: cover; border: 2px solid var(--rule); }
+.after-photos button[aria-checked="true"] img { border-color: var(--tape); box-shadow: 0 0 0 2px var(--tape); }
+.after-photos button:focus-visible img { outline: 3px solid var(--tape); outline-offset: 2px; }
+.after-setup .num { max-width: 240px; }
+.notice-inline { border-left: 3px solid var(--tape); padding-left: 0.6rem; margin: 0; }
