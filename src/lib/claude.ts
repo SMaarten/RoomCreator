@@ -7,12 +7,14 @@ import type {
   BetaToolResultBlockParam,
 } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import { searchIkea } from "./ikea";
+import { buildGeometry, doorSwing, openingPoints } from "./layout";
 import { splitDataUrl } from "./image";
 import {
   OPENING_LABELS,
   STYLES,
-  WALL_LABELS,
+  wallLabel,
   type Design,
+  type Alternative,
   type DesignItem,
   type ExistingItem,
   type IkeaProduct,
@@ -43,22 +45,39 @@ function client(apiKey: string) {
 // Shared prompt pieces
 // ---------------------------------------------------------------------------
 
+const pt = (x: number, y: number) => `(${Math.round(x)}, ${Math.round(y)})`;
+
 export function describeRoom(room: Room): string {
+  const g = buildGeometry(room);
+  const rect = g.walls.length === 4 && g.walls.every((w) => Math.abs(w.ux) < 0.001 || Math.abs(w.uy) < 0.001);
   const lines = [
-    `Afmetingen: ${room.width} cm breed (x, wand A en C) × ${room.depth} cm diep (y, wand B en D), plafondhoogte ${room.height} cm.`,
-    "Coördinaten: oorsprong linksboven binnenhoek, x naar rechts, y naar beneden, alles in cm.",
-    "Wand A = boven (y=0), wand B = rechts (x=breedte), wand C = onder (y=diepte), wand D = links (x=0).",
-    "Offsets op wand A en C lopen van links naar rechts, op wand B en D van boven naar beneden.",
+    rect
+      ? `Rechthoekige kamer van ${g.width} × ${g.depth} cm, plafondhoogte ${room.height} cm, ${g.area.toFixed(1)} m².`
+      : `Onregelmatige kamer met ${g.walls.length} wanden, buitenmaten ${g.width} × ${g.depth} cm, plafondhoogte ${room.height} cm, ${g.area.toFixed(1)} m².`,
+    "Coördinaten in cm: x naar rechts, y naar beneden. De vloer is de veelhoek door deze hoekpunten:",
+    g.points.map((p) => pt(p.x, p.y)).join(" → ") + " → terug naar het begin.",
+    "Wanden (met de klok mee):",
+    ...g.walls.map((w) => `- Wand ${w.id}: van ${pt(w.x1, w.y1)} naar ${pt(w.x2, w.y2)}, ${w.length} cm`),
   ];
+  if (!rect) lines.push("Let op: niet elk punt binnen de buitenmaten ligt in de kamer. Alles moet binnen de veelhoek staan.");
   if (room.openings.length === 0) {
     lines.push("Geen deuren, ramen of radiatoren opgegeven.");
   } else {
     lines.push("Openingen en vaste elementen:");
     for (const o of room.openings) {
-      let s = `- ${OPENING_LABELS[o.kind]} op ${WALL_LABELS[o.wall]}: vanaf ${o.offset} cm, ${o.size} cm breed (tot ${o.offset + o.size} cm)`;
+      const wall = g.walls.find((w) => w.id === o.wall);
+      if (!wall) continue;
+      const p = openingPoints(wall, o);
+      let s = `- ${OPENING_LABELS[o.kind]} op wand ${o.wall}, ${o.size} cm breed, van ${pt(p.sx, p.sy)} tot ${pt(p.ex, p.ey)}`;
       if (o.kind === "raam" && o.sillHeight != null) s += `, vensterbank op ${o.sillHeight} cm hoogte`;
-      if (o.kind === "deur") s += ", draait naar binnen";
-      if (o.note) s += ` — ${o.note}`;
+      if (o.kind === "radiator") s += ", steekt ca. 10 cm de kamer in";
+      if (o.kind === "deur") {
+        const swing = doorSwing(g, o);
+        s += (o.swing ?? "binnen") === "binnen"
+          ? `, draait naar binnen met scharnier bij ${pt(p.hx, p.hy)}; houd het vlak x ${Math.round(swing!.x)}–${Math.round(swing!.x + swing!.width)}, y ${Math.round(swing!.y)}–${Math.round(swing!.y + swing!.depth)} vrij`
+          : ", draait naar buiten (geen draaicirkel in de kamer, wel de doorgang vrijhouden)";
+      }
+      if (o.note) s += ` (${o.note})`;
       lines.push(s);
     }
   }
@@ -71,7 +90,7 @@ function photoBlocks(photos: Photo[]): BetaContentBlockParam[] {
     const { mediaType, data } = splitDataUrl(p.dataUrl);
     blocks.push({
       type: "text",
-      text: `Foto ${i + 1}${p.facing ? ` (kijkt naar ${WALL_LABELS[p.facing]})` : ""}:`,
+      text: `Foto ${i + 1}${p.facing ? ` (kijkt naar ${wallLabel(p.facing)})` : ""}:`,
     });
     blocks.push({
       type: "image",
@@ -215,13 +234,27 @@ const DESIGN_SCHEMA = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["itemNo", "quantity", "role", "reason", ...Object.keys(placementProps)],
+        required: ["itemNo", "quantity", "role", "reason", ...Object.keys(placementProps), "alternatives"],
         properties: {
           itemNo: { type: "string" },
           quantity: { type: "integer" },
           role: { type: "string" },
           reason: { type: "string" },
           ...placementProps,
+          alternatives: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              required: ["itemNo", "note", "width", "depth"],
+              properties: {
+                itemNo: { type: "string" },
+                note: { type: "string" },
+                width: { type: "integer" },
+                depth: { type: "integer" },
+              },
+            },
+          },
         },
       },
     },
@@ -248,16 +281,23 @@ Werkwijze:
 5. Geef het ontwerp terug in het gevraagde JSON-formaat.
 
 Indelingsregels:
-- Coördinaten in cm, oorsprong linksboven binnenhoek, x naar rechts (breedte), y naar beneden (diepte). Elk meubel is een rechthoek (x, y = hoek linksboven; width langs x, depth langs y). Draai je een meubel 90°, wissel dan zelf breedte en diepte om.
+- Coördinaten in cm zoals bij de hoekpunten van de kamer: x naar rechts, y naar beneden. Elk meubel is een rechthoek (x, y = hoek linksboven; width langs x, depth langs y). Draai je een meubel 90°, wissel dan zelf breedte en diepte om.
+- De kamer kan onregelmatig zijn (L-vorm, nis, schuine wand). Elk meubel moet volledig binnen de vloerveelhoek liggen, niet enkel binnen de buitenmaten.
 - Alles moet binnen de kamer vallen en meubels mogen elkaar niet overlappen (een vloerkleed onder een salontafel of bed mag wel).
-- Houd een deur en haar draaicirkel vrij (een cirkelkwart met straal = deurbreedte aan de binnenkant), en een doorgang van minstens 80 cm tussen deuren.
+- Houd bij deuren die naar binnen draaien het opgegeven vlak van de draaicirkel vrij, en een doorgang van minstens 80 cm tussen deuren.
 - Hoofdlooproutes minstens 70–90 cm breed. Voor een bed minstens 60 cm vrij aan de instapzijde(n).
 - Zet geen hoge kasten voor ramen; meubels onder een raam moeten lager zijn dan de vensterbank. Zet geen grote meubels vlak voor een radiator.
 - Bewaarde meubels van de bewoner krijgen ook een plaats in 'kept' (existingId = het opgegeven id). Meubels die vervangen worden, komen niet terug.
 - Kleine spullen zonder vaste plek (kussens, plaids, kaders, planten op een kast) krijgen onPlan=false met x, y, width en depth op 0.
 
+Alternatieven:
+- Geef bij elk item 1 of 2 alternatieven uit je zoekresultaten die ook bij de stijl passen en op dezelfde plaats passen: 2 als er 2 geschikte zijn, anders 1. Zoek gerust extra om goede alternatieven te vinden, bv. in een andere prijsklasse of kleur.
+- Een alternatief is een ander product (ander itemNo) dan de hoofdkeuze en elk alternatief komt maar één keer voor.
+- note: één korte zin over het verschil met de hoofdkeuze (prijs, kleur, maat, materiaal).
+- width en depth: de afmetingen op het plan als dit alternatief op dezelfde plek (x, y) komt, in dezelfde oriëntatie; 0 voor items met onPlan=false.
+
 Budget:
-- De som van prijs × quantity van alle items blijft onder het budget. Reken het na voor je antwoordt.
+- De som van prijs × quantity van alle hoofdkeuzes blijft onder het budget. Reken het na voor je antwoordt. Alternatieven tellen niet mee.
 - Besteed het grootste deel aan wat het meeste verschil maakt; kies desnoods goedkopere alternatieven.
 
 Velden:
@@ -277,7 +317,13 @@ interface RawPlacement {
 }
 interface RawDesign {
   summary: string;
-  items: ({ itemNo: string; quantity: number; role: string; reason: string } & RawPlacement)[];
+  items: ({
+    itemNo: string;
+    quantity: number;
+    role: string;
+    reason: string;
+    alternatives: { itemNo: string; note: string; width: number; depth: number }[];
+  } & RawPlacement)[];
   kept: ({ existingId: string } & RawPlacement)[];
   tips: string[];
 }
@@ -401,12 +447,17 @@ export async function runDesign(
   throw new Error("Het ontwerp bleef zoeken zonder af te ronden. Probeer het opnieuw.");
 }
 
-export function addFeedback(session: DesignSession, feedback: string): DesignSession {
+export function addFeedback(session: DesignSession, feedback: string, current: Design): DesignSession {
+  // The user may have swapped in alternatives since the last answer.
+  const choices = current.items.map((i) => `- ${i.role}: ${i.product.name} ${i.product.typeName} (${i.itemNo})`).join("\n");
   return {
     ...session,
     messages: [
       ...session.messages,
-      { role: "user", content: `Feedback van de bewoner: ${feedback}\n\nPas het ontwerp aan en geef het volledige ontwerp terug.` },
+      {
+        role: "user",
+        content: `Huidige keuzes van de bewoner (eventueel met gekozen alternatieven):\n${choices}\n\nFeedback van de bewoner: ${feedback}\n\nPas het ontwerp aan en geef het volledige ontwerp terug, met alternatieven.`,
+      },
     ],
   };
 }
@@ -424,6 +475,14 @@ function toDesign(raw: RawDesign, catalog: Record<string, IkeaProduct>): Design 
       dropped.push(`${it.role} (${it.itemNo})`);
       continue;
     }
+    const seen = new Set([it.itemNo]);
+    const alternatives: Alternative[] = [];
+    for (const alt of it.alternatives ?? []) {
+      const altProduct = catalog[alt.itemNo];
+      if (!altProduct || seen.has(alt.itemNo)) continue;
+      seen.add(alt.itemNo);
+      alternatives.push({ product: altProduct, note: alt.note, width: alt.width, depth: alt.depth });
+    }
     items.push({
       itemNo: it.itemNo,
       quantity: Math.max(1, it.quantity),
@@ -431,6 +490,7 @@ function toDesign(raw: RawDesign, catalog: Record<string, IkeaProduct>): Design 
       reason: it.reason,
       placement: toPlacement(it),
       product,
+      alternatives: alternatives.slice(0, 2),
     });
   }
   return {

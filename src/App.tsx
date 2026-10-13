@@ -13,7 +13,7 @@ import {
   type Progress,
 } from "./lib/claude";
 import { DEFAULT_GEMINI_MODEL, renderAfterImage } from "./lib/gemini";
-import { checkLayout, validateOpening, type PlanPiece } from "./lib/layout";
+import { buildGeometry, checkLayout, checkRoom, migrateRoom, validateOpening, type PlanPiece } from "./lib/layout";
 import { load, remove, save } from "./lib/storage";
 import { STYLES, type ChatTurn, type Design, type Photo, type Preferences, type Room, type RoomAnalysis, type Settings } from "./lib/types";
 
@@ -30,7 +30,16 @@ interface Project {
 
 const EMPTY: Project = {
   photos: [],
-  room: { name: "", width: 400, depth: 350, height: 260, openings: [] },
+  room: {
+    name: "",
+    height: 260,
+    walls: [
+      { id: "w1", length: 400, angle: 0 },
+      { id: "w2", length: 350, angle: 90 },
+      { id: "w3", length: 400, angle: 180 },
+    ],
+    openings: [],
+  },
   analysis: null,
   prefs: { purpose: "Woonkamer", styleId: "scandinavisch", budget: 1500, wishes: "" },
   session: null,
@@ -38,6 +47,11 @@ const EMPTY: Project = {
   chat: [],
   afterImage: null,
 };
+
+// Designs saved before alternatives existed.
+function migrateDesign(d: Design): Design {
+  return { ...d, items: d.items.map((i) => ({ ...i, alternatives: i.alternatives ?? [] })) };
+}
 
 const DEFAULT_SETTINGS: Settings = { anthropicKey: "", geminiKey: "", geminiModel: DEFAULT_GEMINI_MODEL };
 
@@ -63,7 +77,7 @@ export default function App() {
   // Restore the last project and keys.
   useEffect(() => {
     Promise.all([load<Project>("project"), load<Settings>("settings"), load<number>("step")]).then(([p, s, st]) => {
-      if (p) setProject({ ...EMPTY, ...p });
+      if (p) setProject({ ...EMPTY, ...p, room: migrateRoom(p.room), design: p.design && migrateDesign(p.design) });
       if (s) setSettings({ ...DEFAULT_SETTINGS, ...s });
       if (typeof st === "number") setStep(st);
       if (!s?.anthropicKey) setSettingsOpen(true);
@@ -83,8 +97,9 @@ export default function App() {
   const update = (patch: Partial<Project>) => setProject((p) => ({ ...p, ...patch }));
   const { photos, room, analysis, prefs, design } = project;
 
+  const geometry = useMemo(() => buildGeometry(room), [room]);
   const roomValid =
-    room.width >= 100 && room.depth >= 100 && room.height >= 150 && room.openings.every((o) => !validateOpening(room, o));
+    !checkRoom(room, geometry) && room.height >= 150 && room.openings.every((o) => !validateOpening(geometry, o));
   const unlocked = [true, photos.length > 0, photos.length > 0 && roomValid, !!analysis, !!design || busy === "design"];
 
   const pieces: PlanPiece[] = useMemo(() => {
@@ -95,7 +110,7 @@ export default function App() {
       ...design.items.flatMap((i, idx) => (i.placement ? [{ key: `n${idx}`, label: i.role, placement: i.placement, kind: "new" as const }] : [])),
     ];
   }, [design, analysis]);
-  const issues = useMemo(() => checkLayout(room, pieces), [room, pieces]);
+  const issues = useMemo(() => checkLayout(geometry, room, pieces), [geometry, room, pieces]);
 
   function requireKey(): boolean {
     if (settings.anthropicKey) return true;
@@ -145,10 +160,38 @@ export default function App() {
   }
 
   function feedback(text: string) {
-    if (!project.session) return;
+    if (!project.session || !design) return;
     const chat: ChatTurn[] = [...project.chat, { role: "user", text }];
     update({ chat });
-    design_(addFeedback(project.session, text), chat);
+    design_(addFeedback(project.session, text, design), chat);
+  }
+
+  // Swap an alternative in as the main choice; the old main becomes an alternative.
+  function chooseAlternative(itemIdx: number, altIdx: number) {
+    if (!design) return;
+    const items = design.items.map((item, i) => {
+      if (i !== itemIdx) return item;
+      const alt = item.alternatives[altIdx];
+      const previous = {
+        product: item.product,
+        note: item.reason,
+        width: item.placement?.width ?? 0,
+        depth: item.placement?.depth ?? 0,
+      };
+      return {
+        ...item,
+        itemNo: alt.product.itemNo,
+        product: alt.product,
+        reason: alt.note,
+        placement: item.placement && {
+          ...item.placement,
+          width: alt.width > 0 ? alt.width : item.placement.width,
+          depth: alt.depth > 0 ? alt.depth : item.placement.depth,
+        },
+        alternatives: item.alternatives.map((a, j) => (j === altIdx ? previous : a)),
+      };
+    });
+    update({ design: { ...design, items }, afterImage: null });
   }
 
   async function render() {
@@ -211,7 +254,7 @@ export default function App() {
 
           <div className="panel">
             <h1>{STEPS[step].title}</h1>
-            {step === 0 && <PhotosStep photos={photos} onChange={(p) => update({ photos: p })} />}
+            {step === 0 && <PhotosStep photos={photos} wallIds={geometry.walls.map((w) => w.id)} onChange={(p) => update({ photos: p })} />}
             {step === 1 && <RoomStep room={room} onChange={(r) => update({ room: r })} />}
             {step === 2 && (
               <ExistingStep
@@ -239,6 +282,7 @@ export default function App() {
                 chat={project.chat}
                 busy={busy !== null}
                 onFeedback={feedback}
+                onChooseAlternative={chooseAlternative}
                 canRender={!!settings.geminiKey}
                 rendering={busy === "render"}
                 afterImage={project.afterImage}

@@ -11,6 +11,7 @@ interface Props {
   chat: ChatTurn[];
   busy: boolean;
   onFeedback: (text: string) => void;
+  onChooseAlternative: (itemIdx: number, altIdx: number) => void;
   canRender: boolean;
   rendering: boolean;
   afterImage: string | null;
@@ -18,7 +19,7 @@ interface Props {
 }
 
 export function Results(props: Props) {
-  const { design, budget, issues, highlight, onHighlight } = props;
+  const { design, budget, issues, highlight, onHighlight, onChooseAlternative, busy } = props;
   const total = design.items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
   const over = total > budget;
   const pct = Math.min(100, (total / Math.max(1, budget)) * 100);
@@ -72,6 +73,37 @@ export function Results(props: Props) {
                 <strong>{formatEuro(item.product.price * item.quantity)}</strong>
                 {!item.placement && <span className="muted small">niet op plan</span>}
               </div>
+              {item.alternatives.length > 0 && (
+                <div className="alts">
+                  <span className="alts-title">{item.alternatives.length === 1 ? "Alternatief" : "Alternatieven"}</span>
+                  <ul>
+                    {item.alternatives.map((alt, altIdx) => {
+                      const diff = (alt.product.price - item.product.price) * item.quantity;
+                      return (
+                        <li key={alt.product.itemNo}>
+                          {alt.product.imageUrl ? <img src={alt.product.imageUrl} alt="" loading="lazy" /> : <span className="noimg" aria-hidden="true" />}
+                          <div>
+                            <a href={alt.product.url} target="_blank" rel="noreferrer" className="pname">
+                              {alt.product.name} <span>{alt.product.typeName}</span>
+                            </a>
+                            {alt.product.measure && <span className="measure"> {alt.product.measure}</span>}
+                            <p className="small muted">{alt.note}</p>
+                          </div>
+                          <div className="alt-side">
+                            <strong>{formatEuro(alt.product.price)}</strong>
+                            <span className={`small ${diff > 0 ? "more" : "less"}`}>
+                              {diff === 0 ? "zelfde prijs" : `${diff > 0 ? "+" : "−"}${formatEuro(Math.abs(diff))}`}
+                            </span>
+                            <button className="btn ghost small" disabled={busy} onClick={() => onChooseAlternative(idx, altIdx)}>
+                              Kies dit
+                            </button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
             </li>
           );
         })}

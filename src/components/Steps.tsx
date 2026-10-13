@@ -1,25 +1,24 @@
 import { useRef, useState } from "react";
 import { resizeToJpeg } from "../lib/image";
-import { validateOpening } from "../lib/layout";
+import { buildGeometry, checkRoom, isAxisAligned, PRESETS, validateOpening } from "../lib/layout";
 import {
   OPENING_LABELS,
   PURPOSES,
   STYLES,
-  WALL_LABELS,
   type Opening,
   type OpeningKind,
   type Photo,
   type Preferences,
   type Room,
   type RoomAnalysis,
-  type WallId,
+  wallLabel,
 } from "../lib/types";
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 
 // ---------------------------------------------------------------------------
 
-export function PhotosStep({ photos, onChange }: { photos: Photo[]; onChange: (p: Photo[]) => void }) {
+export function PhotosStep({ photos, wallIds, onChange }: { photos: Photo[]; wallIds: string[]; onChange: (p: Photo[]) => void }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,11 +69,11 @@ export function PhotosStep({ photos, onChange }: { photos: Photo[]; onChange: (p
               <select
                 aria-label="Welke wand staat op deze foto?"
                 value={p.facing ?? ""}
-                onChange={(e) => onChange(photos.map((x) => (x.id === p.id ? { ...x, facing: (e.target.value || undefined) as WallId | undefined } : x)))}
+                onChange={(e) => onChange(photos.map((x) => (x.id === p.id ? { ...x, facing: e.target.value || undefined } : x)))}
               >
                 <option value="">Kijkt naar…</option>
-                {(Object.keys(WALL_LABELS) as WallId[]).map((w) => (
-                  <option key={w} value={w}>{WALL_LABELS[w]}</option>
+                {wallIds.map((w) => (
+                  <option key={w} value={w}>{wallLabel(w)}</option>
                 ))}
               </select>
               <button className="icon" aria-label="Foto verwijderen" onClick={() => onChange(photos.filter((x) => x.id !== p.id))}>×</button>
@@ -109,33 +108,113 @@ function Num({ label, value, onChange, min = 0, suffix = "cm" }: { label: string
 const ADDABLE: OpeningKind[] = ["deur", "raam", "radiator", "doorgang"];
 const DEFAULT_SIZE: Record<OpeningKind, number> = { deur: 83, raam: 120, radiator: 100, doorgang: 90, anders: 60 };
 
+const DIRECTIONS = [
+  { angle: 0, label: "→ naar rechts" },
+  { angle: 90, label: "↓ naar beneden" },
+  { angle: 180, label: "← naar links" },
+  { angle: 270, label: "↑ naar boven" },
+];
+const isStraight = (a: number) => DIRECTIONS.some((d) => d.angle === a);
+
 export function RoomStep({ room, onChange }: { room: Room; onChange: (r: Room) => void }) {
   const set = (patch: Partial<Room>) => onChange({ ...room, ...patch });
+  const setWall = (id: string, patch: Partial<Room["walls"][number]>) =>
+    set({ walls: room.walls.map((w) => (w.id === id ? { ...w, ...patch } : w)) });
   const setOpening = (id: string, patch: Partial<Opening>) =>
     set({ openings: room.openings.map((o) => (o.id === id ? { ...o, ...patch } : o)) });
 
+  const g = buildGeometry(room);
+  const shapeError = checkRoom(room, g);
+  const closing = g.walls.find((w) => w.closing);
+
   return (
     <div className="step-body">
-      <p className="lead">Meet de binnenmaten van muur tot muur. Wand A is de bovenkant van de plattegrond; de rest volgt met de klok mee.</p>
+      <p className="lead">
+        Loop in gedachten langs de muren, met de klok mee. Begin in de hoek linksboven en ga eerst naar rechts.
+        De laatste wand terug naar het begin rekenen we zelf uit.
+      </p>
+
+      <div className="row wrap">
+        <span className="muted small">Begin met:</span>
+        {Object.entries(PRESETS).map(([key, p]) => (
+          <button
+            key={key}
+            className="btn ghost small"
+            onClick={() => set({ walls: p.walls.map((w) => ({ ...w, id: uid() })) })}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      <ol className="walls">
+        {room.walls.map((w, i) => (
+          <li key={w.id}>
+            <span className="wall-name">{wallLabel(g.walls[i]?.id ?? String.fromCharCode(65 + i))}</span>
+            <Num label="Lengte" value={w.length} onChange={(length) => setWall(w.id, { length })} />
+            <label className="num">
+              <span>Richting</span>
+              <select
+                value={isStraight(w.angle) ? String(w.angle) : "schuin"}
+                onChange={(e) => setWall(w.id, { angle: e.target.value === "schuin" ? 45 : Number(e.target.value) })}
+              >
+                {DIRECTIONS.map((d) => (
+                  <option key={d.angle} value={d.angle}>{d.label}</option>
+                ))}
+                <option value="schuin">↘ schuin…</option>
+              </select>
+            </label>
+            {!isStraight(w.angle) && (
+              <Num label="Hoek" suffix="°" value={w.angle} onChange={(angle) => setWall(w.id, { angle: ((angle % 360) + 360) % 360 })} />
+            )}
+            <button
+              className="icon"
+              aria-label={`Wand ${g.walls[i]?.id} verwijderen`}
+              disabled={room.walls.length <= 2}
+              onClick={() => set({ walls: room.walls.filter((x) => x.id !== w.id) })}
+            >
+              ×
+            </button>
+          </li>
+        ))}
+        {closing && (
+          <li className="closing">
+            <span className="wall-name">{wallLabel(closing.id)}</span>
+            <span>
+              sluit automatisch: <strong>{closing.length} cm</strong>
+              {!isAxisAligned(closing) && <span className="muted"> (loopt schuin; klopt dat?)</span>}
+            </span>
+          </li>
+        )}
+      </ol>
+      <div className="row wrap">
+        <button className="btn ghost small" onClick={() => set({ walls: [...room.walls, { id: uid(), length: 100, angle: 90 }] })}>
+          + Wand
+        </button>
+        <span className="muted small">
+          Hoek: 0° is naar rechts, 90° naar beneden. Eén schuine muur? Laat die als laatste wand, dan klopt ze vanzelf.
+        </span>
+      </div>
+      {shapeError && <p className="error">{shapeError}</p>}
+
       <div className="dims">
-        <Num label="Breedte (wand A)" value={room.width} onChange={(width) => set({ width })} />
-        <Num label="Diepte (wand B)" value={room.depth} onChange={(depth) => set({ depth })} />
         <Num label="Plafondhoogte" value={room.height} onChange={(height) => set({ height })} />
+        <p className="muted small area">Vloeroppervlak: {g.area.toFixed(1)} m²</p>
       </div>
 
       <h3>Deuren, ramen en radiatoren</h3>
-      <p className="muted">Afstand meet je vanaf het begin van de wand: links voor A en C, boven voor B en D.</p>
+      <p className="muted">Kijk vanuit de kamer naar de wand: de afstand meet je vanaf de linkerhoek.</p>
 
       {room.openings.map((o) => {
-        const err = validateOpening(room, o);
+        const err = validateOpening(g, o);
         return (
           <fieldset key={o.id} className="opening">
             <legend>{OPENING_LABELS[o.kind]}</legend>
             <label className="num">
               <span>Wand</span>
-              <select value={o.wall} onChange={(e) => setOpening(o.id, { wall: e.target.value as WallId })}>
-                {(Object.keys(WALL_LABELS) as WallId[]).map((w) => (
-                  <option key={w} value={w}>{WALL_LABELS[w]}</option>
+              <select value={o.wall} onChange={(e) => setOpening(o.id, { wall: e.target.value })}>
+                {g.walls.map((w) => (
+                  <option key={w.id} value={w.id}>{wallLabel(w.id)} ({w.length} cm)</option>
                 ))}
               </select>
             </label>
@@ -143,6 +222,24 @@ export function RoomStep({ room, onChange }: { room: Room; onChange: (r: Room) =
             <Num label="Breedte" value={o.size} onChange={(size) => setOpening(o.id, { size })} />
             {o.kind === "raam" && (
               <Num label="Vensterbank" value={o.sillHeight ?? NaN} onChange={(sillHeight) => setOpening(o.id, { sillHeight: Number.isFinite(sillHeight) ? sillHeight : undefined })} />
+            )}
+            {o.kind === "deur" && (
+              <>
+                <label className="num">
+                  <span>Scharnier</span>
+                  <select value={o.hinge ?? "links"} onChange={(e) => setOpening(o.id, { hinge: e.target.value as Opening["hinge"] })}>
+                    <option value="links">Links</option>
+                    <option value="rechts">Rechts</option>
+                  </select>
+                </label>
+                <label className="num">
+                  <span>Draait</span>
+                  <select value={o.swing ?? "binnen"} onChange={(e) => setOpening(o.id, { swing: e.target.value as Opening["swing"] })}>
+                    <option value="binnen">Naar binnen</option>
+                    <option value="buiten">Naar buiten</option>
+                  </select>
+                </label>
+              </>
             )}
             <button className="icon" aria-label={`${OPENING_LABELS[o.kind]} verwijderen`} onClick={() => set({ openings: room.openings.filter((x) => x.id !== o.id) })}>×</button>
             {err && <p className="error full">{err}</p>}
@@ -159,7 +256,16 @@ export function RoomStep({ room, onChange }: { room: Room; onChange: (r: Room) =
               set({
                 openings: [
                   ...room.openings,
-                  { id: uid(), kind: k, wall: "A", offset: 20, size: DEFAULT_SIZE[k], sillHeight: k === "raam" ? 90 : undefined },
+                  {
+                    id: uid(),
+                    kind: k,
+                    wall: "A",
+                    offset: 20,
+                    size: DEFAULT_SIZE[k],
+                    sillHeight: k === "raam" ? 90 : undefined,
+                    hinge: k === "deur" ? "links" : undefined,
+                    swing: k === "deur" ? "binnen" : undefined,
+                  },
                 ],
               })
             }
