@@ -16,7 +16,7 @@ export async function renderAfterImage(
 ): Promise<string> {
   const { mediaType, data } = splitDataUrl(photoDataUrl);
   const pieces = design.items
-    .filter((i) => i.placement)
+    .filter((i) => i.placement && !i.removed)
     .map((i) => `- ${i.role}: IKEA ${i.product.name}, ${i.product.typeName}${i.product.colors.length ? `, ${i.product.colors.join("/")}` : ""}${i.product.measure ? `, ${i.product.measure}` : ""}`)
     .join("\n");
   const prompt = [

@@ -449,14 +449,19 @@ export async function runDesign(
 
 export function addFeedback(session: DesignSession, feedback: string, current: Design): DesignSession {
   // The user may have swapped in alternatives since the last answer.
-  const choices = current.items.map((i) => `- ${i.role}: ${i.product.name} ${i.product.typeName} (${i.itemNo})`).join("\n");
+  const kept = current.items.filter((i) => !i.removed);
+  const removed = current.items.filter((i) => i.removed);
+  const choices = kept.map((i) => `- ${i.role}: ${i.product.name} ${i.product.typeName} (${i.itemNo})`).join("\n");
+  const skipped = removed.length
+    ? `\n\nWeggelaten door de bewoner (heeft dit al of vindt het overbodig, niet opnieuw voorstellen en niet in het ontwerp opnemen):\n${removed.map((i) => `- ${i.role}: ${i.product.name} ${i.product.typeName}`).join("\n")}`
+    : "";
   return {
     ...session,
     messages: [
       ...session.messages,
       {
         role: "user",
-        content: `Huidige keuzes van de bewoner (eventueel met gekozen alternatieven):\n${choices}\n\nFeedback van de bewoner: ${feedback}\n\nPas het ontwerp aan en geef het volledige ontwerp terug, met alternatieven.`,
+        content: `Huidige keuzes van de bewoner (eventueel met gekozen alternatieven):\n${choices}${skipped}\n\nFeedback van de bewoner: ${feedback}\n\nPas het ontwerp aan en geef het volledige ontwerp terug, met alternatieven.`,
       },
     ],
   };

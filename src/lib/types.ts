@@ -113,6 +113,8 @@ export interface DesignItem {
   placement: Placement | null;
   product: IkeaProduct;
   alternatives: Alternative[];
+  /** The user already has this or doesn't need it. */
+  removed?: boolean;
 }
 
 export interface KeptPlacement {
