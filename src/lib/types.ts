@@ -1,14 +1,22 @@
 // Shared domain types.
 //
-// Plan coordinates are in centimetres. Origin is the top-left inside corner of
-// the room as drawn: x runs to the right (room width), y runs down (room depth).
-// Walls are named by their side of the drawing:
-//   A = top (y = 0), offsets measured left → right
-//   B = right (x = width), offsets measured top → bottom
-//   C = bottom (y = depth), offsets measured left → right
-//   D = left (x = 0), offsets measured top → bottom
+// Plan coordinates are in centimetres, x to the right and y down.
+// A room is a walk along its walls, clockwise, starting at the top-left
+// corner: each wall has a length and a direction. The last wall back to the
+// start is added automatically, so any shape (L-shapes, alcoves, a slanted
+// wall) can be described. Walls are lettered A, B, C… in walking order.
+// Because the walk is clockwise, the start of a wall is on the left when you
+// stand in the room facing it; opening offsets are measured from there.
 
-export type WallId = "A" | "B" | "C" | "D";
+/** Wall letter: "A", "B", … */
+export type WallId = string;
+
+export interface WallSpec {
+  id: string;
+  length: number;
+  /** Direction in degrees: 0 = right, 90 = down, 180 = left, 270 = up. */
+  angle: number;
+}
 
 export type OpeningKind = "deur" | "raam" | "radiator" | "doorgang" | "anders";
 
@@ -22,14 +30,18 @@ export interface Opening {
   size: number;
   /** Windows: sill height above the floor (cm). */
   sillHeight?: number;
+  /** Doors: hinge on the left or right, seen from inside the room. */
+  hinge?: "links" | "rechts";
+  /** Doors: opens into the room or out of it. */
+  swing?: "binnen" | "buiten";
   note?: string;
 }
 
 export interface Room {
   name: string;
-  width: number;
-  depth: number;
   height: number;
+  /** All walls except the closing one, which is computed. */
+  walls: WallSpec[];
   openings: Opening[];
 }
 
@@ -85,6 +97,14 @@ export interface Placement {
   depth: number;
 }
 
+export interface Alternative {
+  product: IkeaProduct;
+  note: string;
+  /** Footprint on the plan if this product replaces the main choice. */
+  width: number;
+  depth: number;
+}
+
 export interface DesignItem {
   itemNo: string;
   quantity: number;
@@ -92,6 +112,7 @@ export interface DesignItem {
   reason: string;
   placement: Placement | null;
   product: IkeaProduct;
+  alternatives: Alternative[];
 }
 
 export interface KeptPlacement {
@@ -155,9 +176,4 @@ export const OPENING_LABELS: Record<OpeningKind, string> = {
   anders: "Anders",
 };
 
-export const WALL_LABELS: Record<WallId, string> = {
-  A: "Wand A (boven)",
-  B: "Wand B (rechts)",
-  C: "Wand C (onder)",
-  D: "Wand D (links)",
-};
+export const wallLabel = (id: WallId) => `Wand ${id}`;

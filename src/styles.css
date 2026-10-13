@@ -225,7 +225,7 @@ textarea { width: 100%; resize: vertical; }
 .num-input input { width: 6.5rem; font-variant-numeric: tabular-nums; font-size: 1rem; }
 .num-input em { font-style: normal; color: var(--ink-soft); margin-left: 0.35rem; font-weight: 400; }
 
-.dims { display: flex; gap: 1rem; flex-wrap: wrap; }
+.dims { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1.25rem; }
 .dims .num-input input { font-size: 1.35rem; font-weight: 700; width: 7rem; border-width: 0 0 2px; background: transparent; border-color: var(--tape); }
 
 .opening {
@@ -371,9 +371,9 @@ textarea { width: 100%; resize: vertical; }
 .plan-floor { fill: var(--sheet); }
 .plan-grid { stroke: var(--grid); }
 .plan-hatch { stroke: var(--ink-soft); opacity: 0.35; }
-.plan-wall { fill: none; stroke: var(--ink); }
+.plan-wall { fill: var(--ink); stroke: var(--ink); }
 .plan-wallname { fill: var(--ink-soft); font-weight: 700; }
-.plan-door .gap, .plan-window rect { fill: var(--sheet); stroke: none; }
+.plan-door .gap { fill: var(--sheet); stroke: none; }
 .plan-door .leaf { stroke: var(--ink); stroke-width: 3; }
 .plan-door .swing { fill: none; stroke: var(--ink-soft); stroke-width: 1.5; stroke-dasharray: 6 5; }
 .plan-window line { stroke: var(--ink); stroke-width: 2; }
@@ -414,3 +414,35 @@ textarea { width: 100%; resize: vertical; }
   .brand span { font-size: 1rem; }
 }
 .row.bottom { align-items: flex-end; }
+
+/* ---------- alternatives ---------- */
+
+.alts { grid-column: 2 / -1; border-left: 2px solid var(--rule); padding-left: 0.75rem; margin-top: 0.25rem; }
+.alts-title { font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); }
+.alts ul { list-style: none; padding: 0; margin: 0.25rem 0 0; }
+.alts li { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 0.6rem; padding: 0.45rem 0; align-items: start; }
+.alts li + li { border-top: 1px dashed var(--rule); }
+.alts img, .alts .noimg { width: 48px; height: 48px; object-fit: contain; background: #fff; border: 1px solid var(--rule); }
+.alts .pname { font-size: 0.92rem; }
+.alts p { margin: 0.1rem 0 0; }
+.alt-side { display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.alt-side .more { color: var(--danger); }
+.alt-side .less { color: var(--ok); }
+@media (max-width: 520px) {
+  .alts { grid-column: 1 / -1; }
+  .alts li { grid-template-columns: 40px minmax(0, 1fr); }
+  .alts img, .alts .noimg { width: 40px; height: 40px; }
+  .alt-side { grid-column: 2; flex-direction: row; align-items: center; flex-wrap: wrap; }
+}
+
+/* ---------- wall editor ---------- */
+
+.walls { list-style: none; padding: 0; margin: 1rem 0 0.6rem; }
+.walls li { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; padding: 0.5rem 0; border-bottom: 1px solid var(--rule); }
+.walls .wall-name { font-weight: 800; font-variation-settings: "wdth" 125; min-width: 4.5rem; padding-bottom: 0.5rem; }
+.walls .closing { align-items: baseline; color: var(--ink-soft); }
+.walls .closing .wall-name { padding-bottom: 0; }
+.dims .area { align-self: flex-end; margin: 0 0 0.6rem; }
+.plan-dim .wall-id { font-weight: 800; fill: var(--tape-ink); }
+.plan-window polygon { fill: var(--sheet); stroke: none; }
+.icon:disabled { opacity: 0.35; cursor: not-allowed; }
