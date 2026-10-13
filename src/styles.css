@@ -603,3 +603,22 @@ textarea { width: 100%; resize: vertical; }
   .lang-switch button { padding: 0.25rem 0.35rem; font-size: 0.72rem; }
   .top nav { gap: 0.35rem; }
 }
+
+/* ---------- admin ---------- */
+
+.admin-main { max-width: 1100px; margin: 0 auto; padding: clamp(16px, 3vw, 32px); }
+.admin-main h2 { margin: 2.25rem 0 0.6rem; }
+.admin-main .lead { max-width: 70ch; }
+.periods { margin-top: 1rem; }
+.periods td, .periods th { padding: 0.6rem 0.5rem; }
+.periods .total-cell { font-weight: 800; font-size: 1.05rem; }
+.facts { display: flex; flex-wrap: wrap; gap: 0.5rem 2rem; align-items: flex-end; margin-top: 1rem; }
+.facts p { margin: 0; }
+.facts .rate input { width: 7rem; }
+.official-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem 2rem; }
+.official-grid > div { border-left: 4px solid var(--tape); padding-left: 1rem; }
+.official-grid h3 { margin-top: 0; }
+.official-grid ul { padding-left: 1.1rem; margin: 0 0 0.5rem; }
+.log-table td { white-space: nowrap; }
+.prices input { width: 5.5rem; text-align: right; padding: 0.25rem 0.4rem; font-variant-numeric: tabular-nums; }
+.admin a.btn { text-decoration: none; }

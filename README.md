@@ -70,6 +70,16 @@ rechtstreeks naar Anthropic en Google.
 Een volledig ontwerp kost doorgaans enkele tientallen eurocent aan
 Anthropic-tegoed (foto's + een tiental zoekopdrachten).
 
+## Verbruik en kosten
+
+`admin.html` (op de site: https://smaarten.github.io/RoomCreator/admin.html, of
+via *Instellingen → Verbruik en kosten bekijken*) toont wat de app in deze
+browser verbruikt heeft: kost per dag, maand en project, gemiddelde kost per
+ontwerp, cachegebruik en elke oproep met haar tokens. De kost wordt berekend
+uit de tokens die de API teruggeeft en een aanpasbare tarieventabel. De
+officiële cijfers staan bij [Anthropic](https://platform.claude.com/cost) en
+[Google AI Studio](https://aistudio.google.com/spend).
+
 ## Lokaal draaien
 
 ```bash
@@ -101,6 +111,8 @@ Elke push naar `main` bouwt de site en zet ze op GitHub Pages via
 | [`src/lib/locale.ts`](src/lib/locale.ts) | Winkels, dichtstbijzijnde winkel, IKEA-site en taal |
 | [`src/lib/projects.ts`](src/lib/projects.ts) | Projecten bewaren, openen, export/import |
 | [`src/lib/i18n.ts`](src/lib/i18n.ts) | Vertalingen NL/FR/EN |
+| [`src/lib/usage.ts`](src/lib/usage.ts) | Verbruikslogboek en kostberekening |
+| [`src/admin/Admin.tsx`](src/admin/Admin.tsx) | Verbruikspagina (admin.html) |
 | [`src/App.tsx`](src/App.tsx) | Stappen, status en opslag |
 
 Vite + React + TypeScript, `@anthropic-ai/sdk` in de browser.

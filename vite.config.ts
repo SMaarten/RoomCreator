@@ -5,4 +5,13 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   base: "/RoomCreator/",
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      // Two pages: the app and the usage/cost overview (admin.html).
+      input: {
+        main: "index.html",
+        admin: "admin.html",
+      },
+    },
+  },
 });
