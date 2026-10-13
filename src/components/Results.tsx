@@ -86,8 +86,13 @@ export function Results(props: Props) {
                 </button>
               </div>
               {item.alternatives.length > 0 && (
-                <div className="alts">
-                  <span className="alts-title">{item.alternatives.length === 1 ? t("results.alt") : t("results.alts")}</span>
+                <details className="alts">
+                  <summary>
+                    {item.alternatives.length === 1 ? t("results.alt") : t("results.alts", { n: item.alternatives.length })}
+                    <span className="alts-range">
+                      {formatEuro(Math.min(...item.alternatives.map((a) => a.product.price)))}–{formatEuro(Math.max(...item.alternatives.map((a) => a.product.price)))}
+                    </span>
+                  </summary>
                   <ul>
                     {item.alternatives.map((alt, altIdx) => {
                       const diff = (alt.product.price - item.product.price) * item.quantity;
@@ -114,7 +119,7 @@ export function Results(props: Props) {
                       );
                     })}
                   </ul>
-                </div>
+                </details>
               )}
             </li>
           );
