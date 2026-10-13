@@ -31,6 +31,7 @@ import {
   setCurrentProjectId,
 } from "./lib/projects";
 import { load, save } from "./lib/storage";
+import type { UsageKind } from "./lib/usage";
 import { styleLabel, type ChatTurn, type Project, type Settings } from "./lib/types";
 
 const DEFAULT_SETTINGS: Settings = {
@@ -121,6 +122,8 @@ export default function App() {
   const preferred = findStore(settings.storeId);
   const listStoreId = project.storeId ?? (preferred?.country === designLocale.country ? preferred.id : null);
 
+  const usageMeta = (kind: UsageKind) => ({ projectId: project.id, projectName: project.name, kind, runId: newId() });
+
   function requireKey(): boolean {
     if (settings.anthropicKey) return true;
     setSettingsOpen(true);
@@ -132,7 +135,7 @@ export default function App() {
     setBusy("analyze");
     setError(null);
     try {
-      const a = await analyzeRoom(settings.anthropicKey, photos, room, settings.lang);
+      const a = await analyzeRoom(settings.anthropicKey, photos, room, settings.lang, usageMeta("analyse"));
       update({ analysis: a });
     } catch (e) {
       setError(friendlyError(e));
@@ -154,7 +157,7 @@ export default function App() {
     setLog([]);
     setStep(4);
     try {
-      const res = await runDesign(settings.anthropicKey, session, onProgress);
+      const res = await runDesign(settings.anthropicKey, session, onProgress, usageMeta(chat.length ? "bijsturen" : "ontwerp"));
       const assistant: ChatTurn | null = chat.length ? { role: "assistant", text: t("chat.adjusted", { summary: res.design.summary }) } : null;
       update({ session: res.session, design: res.design, chat: assistant ? [...chat, assistant] : chat, afterImage: null });
     } catch (e) {
@@ -223,7 +226,7 @@ export default function App() {
     setBusy("render");
     setError(null);
     try {
-      const img = await renderAfterImage(settings.geminiKey, settings.geminiModel || DEFAULT_GEMINI_MODEL, photos[0].dataUrl, design, styleLabel(prefs.styleId));
+      const img = await renderAfterImage(settings.geminiKey, settings.geminiModel || DEFAULT_GEMINI_MODEL, photos[0].dataUrl, design, styleLabel(prefs.styleId), usageMeta("impressie"));
       update({ afterImage: img });
     } catch (e) {
       setError(e instanceof Error ? e.message : t("after.failed"));

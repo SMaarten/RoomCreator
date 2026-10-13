@@ -1,5 +1,6 @@
 import { t } from "./i18n";
 import { splitDataUrl } from "./image";
+import { trackGemini, type UsageMeta } from "./usage";
 import type { Design } from "./types";
 
 // Gemini image editing ("Nano Banana"). Called straight from the browser with
@@ -14,6 +15,7 @@ export async function renderAfterImage(
   photoDataUrl: string,
   design: Design,
   styleLabel: string,
+  meta?: UsageMeta,
 ): Promise<string> {
   const { mediaType, data } = splitDataUrl(photoDataUrl);
   const pieces = design.items
@@ -59,6 +61,7 @@ export async function renderAfterImage(
 
   const image = findImage(json);
   if (!image) throw new Error(t("err.geminiNoImage"));
+  trackGemini(model, 1, meta);
   return `data:${image.mime};base64,${image.data}`;
 }
 

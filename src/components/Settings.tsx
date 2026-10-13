@@ -131,6 +131,10 @@ export function SettingsDialog({ open, settings, onSave, onClose }: Props) {
           />
         </label>
 
+        <p className="small">
+          <a href="admin.html" target="_blank" rel="noreferrer">{t("settings.usage")}</a>
+        </p>
+
         <div className="row end">
           <button type="button" className="btn ghost" onClick={onClose}>{t("settings.cancel")}</button>
           <button type="submit" className="btn">{t("settings.save")}</button>

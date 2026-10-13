@@ -9,6 +9,7 @@ import type {
 import { t, type Lang } from "./i18n";
 import { searchIkea } from "./ikea";
 import { DEFAULT_LOCALE, type CatalogLocale } from "./locale";
+import { trackClaude, type UsageMeta } from "./usage";
 import { buildGeometry, doorSwing, openingPoints } from "./layout";
 import { splitDataUrl } from "./image";
 import {
@@ -166,7 +167,7 @@ const ANALYSIS_SCHEMA = {
   },
 };
 
-export async function analyzeRoom(apiKey: string, photos: Photo[], room: Room, lang: Lang): Promise<RoomAnalysis> {
+export async function analyzeRoom(apiKey: string, photos: Photo[], room: Room, lang: Lang, meta?: UsageMeta): Promise<RoomAnalysis> {
   const system = [
     "Je bent een ervaren interieurarchitect. Je bekijkt foto's van één kamer en beschrijft wat er nu staat.",
     writeIn(lang),
@@ -197,6 +198,7 @@ export async function analyzeRoom(apiKey: string, photos: Photo[], room: Room, l
       },
     ],
   });
+  trackClaude(msg, meta);
   stopCheck(msg);
 
   const parsed = JSON.parse(lastText(msg)) as Omit<RoomAnalysis, "existing"> & {
@@ -396,6 +398,7 @@ export async function runDesign(
   apiKey: string,
   session: DesignSession,
   onProgress: (p: Progress) => void,
+  meta?: UsageMeta,
 ): Promise<{ session: DesignSession; design: Design }> {
   const api = client(apiKey);
   const messages = [...session.messages];
@@ -423,6 +426,7 @@ export async function runDesign(
       })
       .finalMessage();
 
+    trackClaude(msg, meta);
     stopCheck(msg);
     messages.push({ role: "assistant", content: msg.content });
 
