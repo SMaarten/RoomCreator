@@ -418,7 +418,24 @@ textarea { width: 100%; resize: vertical; }
 /* ---------- alternatives ---------- */
 
 .alts { grid-column: 2 / -1; border-left: 2px solid var(--rule); padding-left: 0.75rem; margin-top: 0.25rem; }
-.alts-title { font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); }
+.alts summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.35rem 0;
+  list-style: none;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.alts summary::-webkit-details-marker { display: none; }
+.alts summary::marker { content: ""; }
+.alts summary::before { content: "▸"; color: var(--tape-ink); transition: transform 0.15s; display: inline-block; }
+.alts[open] summary::before { transform: rotate(90deg); }
+.alts summary:hover { text-decoration: underline; text-underline-offset: 3px; }
+.alts-range { font-weight: 400; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { .alts summary::before { transition: none; } }
 .alts ul { list-style: none; padding: 0; margin: 0.25rem 0 0; }
 .alts li { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 0.6rem; padding: 0.45rem 0; align-items: start; }
 .alts li + li { border-top: 1px dashed var(--rule); }

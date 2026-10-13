@@ -30,7 +30,9 @@ const MODEL = "claude-opus-5-5";
 // Server-side refusal fallback: if a request is declined, the API re-runs it
 // on a suitable model inside the same call.
 const BETAS = ["server-side-fallback-2026-07-01"];
-const MAX_TOOL_ROUNDS = 14;
+// More alternatives mean more searches; leave room for them.
+const MAX_ALTERNATIVES = 5;
+const MAX_TOOL_ROUNDS = 24;
 
 export type Progress =
   | { kind: "thinking" }
@@ -303,7 +305,8 @@ Indelingsregels:
 - Kleine spullen zonder vaste plek (kussens, plaids, kaders, planten op een kast) krijgen onPlan=false met x, y, width en depth op 0.
 
 Alternatieven:
-- Geef bij elk item 1 of 2 alternatieven uit je zoekresultaten die ook bij de stijl passen en op dezelfde plaats passen: 2 als er 2 geschikte zijn, anders 1. Zoek gerust extra om goede alternatieven te vinden, bv. in een andere prijsklasse of kleur.
+- Geef bij elk item 5 alternatieven uit je zoekresultaten die ook bij de stijl passen en op dezelfde plaats passen. Minder mag enkel als er echt geen 5 geschikte producten bestaan. Zoek gerust extra om goede alternatieven te vinden.
+- Zorg voor variatie: goedkoper en duurder, een andere kleur of een ander materiaal, een andere vorm of maat die nog past. Zet ze van meest naar minst passend.
 - Een alternatief is een ander product (ander itemNo) dan de hoofdkeuze en elk alternatief komt maar één keer voor.
 - note: één korte zin over het verschil met de hoofdkeuze (prijs, kleur, maat, materiaal).
 - width en depth: de afmetingen op het plan als dit alternatief op dezelfde plek (x, y) komt, in dezelfde oriëntatie; 0 voor items met onPlan=false.
@@ -518,7 +521,7 @@ function toDesign(raw: RawDesign, catalog: Record<string, IkeaProduct>): Design 
       reason: it.reason,
       placement: toPlacement(it),
       product,
-      alternatives: alternatives.slice(0, 2),
+      alternatives: alternatives.slice(0, MAX_ALTERNATIVES),
     });
   }
   return {
