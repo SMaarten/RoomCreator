@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import type { Opening, Placement, Room, WallId, WallSpec } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -99,11 +100,11 @@ export function isAxisAligned(w: Wall): boolean {
 
 /** Problems with the room shape itself, in Dutch. */
 export function checkRoom(room: Room, g: Geometry): string | null {
-  if (room.walls.length < 2) return "Een kamer heeft minstens drie wanden.";
-  if (room.walls.some((w) => !(w.length > 0))) return "Elke wand heeft een lengte nodig.";
-  if (g.walls.length < 3 || g.area < 1) return "Deze wanden sluiten geen ruimte in.";
-  if (!g.clockwise) return "Volg de wanden met de klok mee: begin linksboven en ga eerst naar rechts.";
-  if (selfIntersects(g)) return "Twee wanden kruisen elkaar. Controleer lengtes en richtingen.";
+  if (room.walls.length < 2) return t("shape.minWalls");
+  if (room.walls.some((w) => !(w.length > 0))) return t("shape.wallLength");
+  if (g.walls.length < 3 || g.area < 1) return t("shape.noArea");
+  if (!g.clockwise) return t("shape.clockwise");
+  if (selfIntersects(g)) return t("shape.crossing");
   return null;
 }
 
@@ -130,9 +131,9 @@ function segmentsCross(a: Wall, b: Wall): boolean {
 
 export function validateOpening(g: Geometry, o: Opening): string | null {
   const wall = g.walls.find((w) => w.id === o.wall);
-  if (!wall) return "Deze wand bestaat niet meer.";
-  if (!(o.size > 0)) return "Breedte moet groter dan 0 zijn.";
-  if (o.offset < 0 || o.offset + o.size > wall.length) return `Past niet op wand ${wall.id} (${wall.length} cm lang).`;
+  if (!wall) return t("opening.wallGone");
+  if (!(o.size > 0)) return t("opening.widthZero");
+  if (o.offset < 0 || o.offset + o.size > wall.length) return t("opening.notFit", { id: wall.id, len: wall.length });
   return null;
 }
 
@@ -188,9 +189,8 @@ export function migrateRoom(room: any): Room {
   return { name: room?.name ?? "", height: Number(room?.height) || 260, walls, openings };
 }
 
-export const PRESETS: Record<string, { label: string; walls: Omit<WallSpec, "id">[] }> = {
+export const PRESETS: Record<"rechthoek" | "l" | "schuin", { walls: Omit<WallSpec, "id">[] }> = {
   rechthoek: {
-    label: "Rechthoek",
     walls: [
       { length: 400, angle: 0 },
       { length: 350, angle: 90 },
@@ -198,7 +198,6 @@ export const PRESETS: Record<string, { label: string; walls: Omit<WallSpec, "id"
     ],
   },
   l: {
-    label: "L-vorm",
     walls: [
       { length: 500, angle: 0 },
       { length: 250, angle: 90 },
@@ -208,7 +207,6 @@ export const PRESETS: Record<string, { label: string; walls: Omit<WallSpec, "id"
     ],
   },
   schuin: {
-    label: "Met schuine hoek",
     walls: [
       { length: 300, angle: 0 },
       { length: 141, angle: 45 },
@@ -270,13 +268,13 @@ function insideRoom(p: Placement, g: Geometry): boolean {
 export function checkLayout(g: Geometry, room: Room, pieces: PlanPiece[]): string[] {
   const issues: string[] = [];
   for (const p of pieces) {
-    if (!insideRoom(p.placement, g)) issues.push(`${p.label} valt (deels) buiten de kamer.`);
+    if (!insideRoom(p.placement, g)) issues.push(t("issue.outside", { label: p.label }));
   }
   const solid = pieces.filter((p) => !isFloorCovering(p.label));
   for (let i = 0; i < solid.length; i++) {
     for (let j = i + 1; j < solid.length; j++) {
       if (overlaps(solid[i].placement, solid[j].placement)) {
-        issues.push(`${solid[i].label} en ${solid[j].label} overlappen.`);
+        issues.push(t("issue.overlap", { a: solid[i].label, b: solid[j].label }));
       }
     }
   }
@@ -284,7 +282,7 @@ export function checkLayout(g: Geometry, room: Room, pieces: PlanPiece[]): strin
     const swing = doorSwing(g, o);
     if (!swing) continue;
     for (const p of solid) {
-      if (overlaps(p.placement, swing, 5)) issues.push(`${p.label} staat in de draaicirkel van de deur op wand ${o.wall}.`);
+      if (overlaps(p.placement, swing, 5)) issues.push(t("issue.door", { label: p.label, wall: o.wall }));
     }
   }
   return issues;

@@ -31,6 +31,23 @@ Browser ──foto's + maten──▶ Claude (claude-opus-5-5, vision + tool use
                                └──▶ Gemini (optioneel) → "na"-foto
 ```
 
+Verder:
+
+- **Projecten** met een eigen naam, automatisch bewaard in de browser. Openen,
+  hernoemen, kopiëren, verwijderen, en exporteren/importeren als bestand.
+- **Alternatieven**: per artikel 1–2 andere producten die ook passen; één klik
+  wisselt. Artikelen die je al hebt haal je weg met *Niet nodig*.
+- **Boodschappenlijst** met links, artikelnummers, totaal en een ophaalroute
+  (Markthal-afdeling of gang/vak in het zelfbedieningsmagazijn, met
+  voorraad) voor de gekozen winkel. Export als CSV of PDF.
+- **Taal**: Nederlands, Frans of Engels, ook voor de teksten van Claude.
+- **Dichtstbijzijnde IKEA** via je locatie of uit de lijst (België, Nederland,
+  Frankrijk, Duitsland). De winkel bepaalt van welke IKEA-site producten en
+  prijzen komen, in jouw taal als die site ze aanbiedt, anders Engels of de
+  landstaal.
+- **Onregelmatige kamers** (L-vorm, nis, schuine wand) en deuren met
+  scharnierkant en draairichting.
+
 Waarborgen:
 
 - Claude mag enkel producten kiezen die uit een IKEA-zoekopdracht kwamen.
@@ -61,6 +78,10 @@ npm run dev     # http://localhost:5173/RoomCreator/
 npm run build   # typecheck + productiebuild in dist/
 ```
 
+De winkellijst (met coördinaten) staat in `src/data/stores.json`. IKEA's
+winkel-API laat geen oproepen vanuit de browser toe, dus de lijst zit in de
+app. Vernieuwen met `npm run update-stores`.
+
 ## Publiceren
 
 Elke push naar `main` bouwt de site en zet ze op GitHub Pages via
@@ -76,6 +97,10 @@ Elke push naar `main` bouwt de site en zet ze op GitHub Pages via
 | [`src/lib/gemini.ts`](src/lib/gemini.ts) | "Na"-foto via Gemini-beeldbewerking |
 | [`src/lib/layout.ts`](src/lib/layout.ts) | Lay-outcontrole (buiten de kamer, overlap, deuren) |
 | [`src/components/FloorPlan.tsx`](src/components/FloorPlan.tsx) | Plattegrond op schaal (SVG) |
+| [`src/lib/stock.ts`](src/lib/stock.ts) | Voorraad en ophaallocaties per winkel |
+| [`src/lib/locale.ts`](src/lib/locale.ts) | Winkels, dichtstbijzijnde winkel, IKEA-site en taal |
+| [`src/lib/projects.ts`](src/lib/projects.ts) | Projecten bewaren, openen, export/import |
+| [`src/lib/i18n.ts`](src/lib/i18n.ts) | Vertalingen NL/FR/EN |
 | [`src/App.tsx`](src/App.tsx) | Stappen, status en opslag |
 
 Vite + React + TypeScript, `@anthropic-ai/sdk` in de browser.

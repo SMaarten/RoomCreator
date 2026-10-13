@@ -1,0 +1,970 @@
+[
+ {
+  "id": "482",
+  "country": "be",
+  "name": "IKEA Anderlecht",
+  "city": "Anderlecht",
+  "lat": 50.8103,
+  "lng": 4.2916
+ },
+ {
+  "id": "483",
+  "country": "be",
+  "name": "IKEA Arlon",
+  "city": "Arlon",
+  "lat": 49.6371,
+  "lng": 5.8905
+ },
+ {
+  "id": "169",
+  "country": "be",
+  "name": "IKEA Gent",
+  "city": "Sint-Denijs-Westrem",
+  "lat": 51.0222,
+  "lng": 3.688
+ },
+ {
+  "id": "452",
+  "country": "be",
+  "name": "IKEA Hasselt",
+  "city": "Hasselt",
+  "lat": 50.919,
+  "lng": 5.3151
+ },
+ {
+  "id": "375",
+  "country": "be",
+  "name": "IKEA Liège",
+  "city": "Hognoul",
+  "lat": 50.6788,
+  "lng": 5.4647
+ },
+ {
+  "id": "423",
+  "country": "be",
+  "name": "IKEA Mons",
+  "city": "Mons",
+  "lat": 50.456,
+  "lng": 3.9304
+ },
+ {
+  "id": "179",
+  "country": "be",
+  "name": "IKEA Wilrijk",
+  "city": "Wilrijk",
+  "lat": 51.1576,
+  "lng": 4.3835
+ },
+ {
+  "id": "376",
+  "country": "be",
+  "name": "IKEA Zaventem",
+  "city": "Zaventem",
+  "lat": 50.8723,
+  "lng": 4.4912
+ },
+ {
+  "id": "066",
+  "country": "de",
+  "name": "IKEA Augsburg",
+  "city": "Gersthofen",
+  "lat": 48.4047727,
+  "lng": 10.8713152
+ },
+ {
+  "id": "324",
+  "country": "de",
+  "name": "IKEA Berlin-Lichtenberg",
+  "city": "Berlin",
+  "lat": 52.53395663,
+  "lng": 13.51439017
+ },
+ {
+  "id": "394",
+  "country": "de",
+  "name": "IKEA Berlin-Spandau",
+  "city": "Berlin",
+  "lat": 52.52811168,
+  "lng": 13.21462368
+ },
+ {
+  "id": "421",
+  "country": "de",
+  "name": "IKEA Berlin-Tempelhof",
+  "city": "Berlin,Tempelhof",
+  "lat": 52.46958147,
+  "lng": 13.36625688
+ },
+ {
+  "id": "129",
+  "country": "de",
+  "name": "IKEA Berlin-Waltersdorf",
+  "city": "Schönefeld",
+  "lat": 52.3668,
+  "lng": 13.5558
+ },
+ {
+  "id": "119",
+  "country": "de",
+  "name": "IKEA Bielefeld",
+  "city": "Bielefeld",
+  "lat": 51.98214858,
+  "lng": 8.49225392
+ },
+ {
+  "id": "117",
+  "country": "de",
+  "name": "IKEA Braunschweig",
+  "city": "Braunschweig",
+  "lat": 52.3090339,
+  "lng": 10.5045591
+ },
+ {
+  "id": "412",
+  "country": "de",
+  "name": "IKEA Bremerhaven",
+  "city": "Bremerhaven",
+  "lat": 53.48903308,
+  "lng": 8.60557004
+ },
+ {
+  "id": "228",
+  "country": "de",
+  "name": "IKEA Brinkum",
+  "city": "Brinkum",
+  "lat": 53.0264079,
+  "lng": 8.80364824
+ },
+ {
+  "id": "118",
+  "country": "de",
+  "name": "IKEA Chemnitz",
+  "city": "Chemnitz",
+  "lat": 50.80238823,
+  "lng": 12.85975825
+ },
+ {
+  "id": "223",
+  "country": "de",
+  "name": "IKEA Dortmund",
+  "city": "Dortmund",
+  "lat": 51.49114718,
+  "lng": 7.36942207
+ },
+ {
+  "id": "221",
+  "country": "de",
+  "name": "IKEA Dresden",
+  "city": "Dresden",
+  "lat": 51.08640651,
+  "lng": 13.69434213
+ },
+ {
+  "id": "425",
+  "country": "de",
+  "name": "IKEA Duisburg",
+  "city": "Duisburg",
+  "lat": 51.4821721,
+  "lng": 6.7638779
+ },
+ {
+  "id": "321",
+  "country": "de",
+  "name": "IKEA Düsseldorf",
+  "city": "Düsseldorf",
+  "lat": 51.1875844,
+  "lng": 6.8489371
+ },
+ {
+  "id": "396",
+  "country": "de",
+  "name": "IKEA Erfurt",
+  "city": "Erfurt",
+  "lat": 50.9594997,
+  "lng": 10.94904477
+ },
+ {
+  "id": "148",
+  "country": "de",
+  "name": "IKEA Essen",
+  "city": "Essen",
+  "lat": 51.4603732,
+  "lng": 7.0009114
+ },
+ {
+  "id": "393",
+  "country": "de",
+  "name": "IKEA Frankfurt",
+  "city": "Frankfurt, Niedereschbach",
+  "lat": 50.1958783,
+  "lng": 8.6570205
+ },
+ {
+  "id": "320",
+  "country": "de",
+  "name": "IKEA Freiburg",
+  "city": "Freiburg im Breisgau",
+  "lat": 48.0286081,
+  "lng": 7.8328693
+ },
+ {
+  "id": "139",
+  "country": "de",
+  "name": "IKEA Halle/Leipzig",
+  "city": "Leuna",
+  "lat": 51.3486862,
+  "lng": 12.1831434
+ },
+ {
+  "id": "245",
+  "country": "de",
+  "name": "IKEA Hamburg-Altona",
+  "city": "Hamburg-Altona",
+  "lat": 53.55159758,
+  "lng": 9.94162073
+ },
+ {
+  "id": "325",
+  "country": "de",
+  "name": "IKEA Hamburg-Moorfleet",
+  "city": "Hamburg, Moorfleet",
+  "lat": 53.5111654,
+  "lng": 10.09223035
+ },
+ {
+  "id": "146",
+  "country": "de",
+  "name": "IKEA Hamburg-Schnelsen",
+  "city": "Hamburg, Schnelsen",
+  "lat": 53.64886399,
+  "lng": 9.92747005
+ },
+ {
+  "id": "222",
+  "country": "de",
+  "name": "IKEA Hanau",
+  "city": "Hanau",
+  "lat": 50.1496729,
+  "lng": 8.942477
+ },
+ {
+  "id": "187",
+  "country": "de",
+  "name": "IKEA Hannover EXPO-Park",
+  "city": "Hannover",
+  "lat": 52.313743,
+  "lng": 9.8169591
+ },
+ {
+  "id": "226",
+  "country": "de",
+  "name": "IKEA Hannover-Großburgwedel",
+  "city": "Burgwedel",
+  "lat": 52.49217842,
+  "lng": 9.83772312
+ },
+ {
+  "id": "1319",
+  "country": "de",
+  "name": "IKEA Ingolstadt",
+  "city": "Ingolstadt",
+  "lat": 48.774,
+  "lng": 11.3862
+ },
+ {
+  "id": "494",
+  "country": "de",
+  "name": "IKEA Kaarst",
+  "city": "Kaarst",
+  "lat": 51.21135828,
+  "lng": 6.64034903
+ },
+ {
+  "id": "430",
+  "country": "de",
+  "name": "IKEA Kaiserslautern",
+  "city": "Kaiserslautern",
+  "lat": 49.4404562,
+  "lng": 7.7011199
+ },
+ {
+  "id": "323",
+  "country": "de",
+  "name": "IKEA Kamen",
+  "city": "Kamen",
+  "lat": 51.5693436,
+  "lng": 7.6692708
+ },
+ {
+  "id": "551",
+  "country": "de",
+  "name": "IKEA Karlsruhe",
+  "city": "Karlsruhe",
+  "lat": 49.00488474,
+  "lng": 8.44202492
+ },
+ {
+  "id": "174",
+  "country": "de",
+  "name": "IKEA Kassel",
+  "city": "Kassel",
+  "lat": 51.2776732,
+  "lng": 9.5255785
+ },
+ {
+  "id": "333",
+  "country": "de",
+  "name": "IKEA Kiel",
+  "city": "Kiel",
+  "lat": 54.31388305,
+  "lng": 10.10739409
+ },
+ {
+  "id": "332",
+  "country": "de",
+  "name": "IKEA Koblenz",
+  "city": "Koblenz",
+  "lat": 50.3823076,
+  "lng": 7.5678478
+ },
+ {
+  "id": "102",
+  "country": "de",
+  "name": "IKEA Köln-Am Butzweilerhof",
+  "city": "Köln",
+  "lat": 50.9849209,
+  "lng": 6.8966186
+ },
+ {
+  "id": "147",
+  "country": "de",
+  "name": "IKEA Köln-Godorf",
+  "city": "Köln",
+  "lat": 50.8615936,
+  "lng": 6.9710502
+ },
+ {
+  "id": "289",
+  "country": "de",
+  "name": "IKEA Lübeck",
+  "city": "Lübeck",
+  "lat": 53.91202381,
+  "lng": 10.73499377
+ },
+ {
+  "id": "225",
+  "country": "de",
+  "name": "IKEA Ludwigsburg",
+  "city": "Ludwigsburg",
+  "lat": 48.9180169,
+  "lng": 9.1539393
+ },
+ {
+  "id": "520",
+  "country": "de",
+  "name": "IKEA Magdeburg",
+  "city": "Magdeburg",
+  "lat": 52.1688305,
+  "lng": 11.611555
+ },
+ {
+  "id": "397",
+  "country": "de",
+  "name": "IKEA Mannheim",
+  "city": "Mannheim",
+  "lat": 49.55584098,
+  "lng": 8.44385199
+ },
+ {
+  "id": "343",
+  "country": "de",
+  "name": "IKEA München-Brunnthal",
+  "city": "Taufkirchen",
+  "lat": 48.0404658,
+  "lng": 11.6580197
+ },
+ {
+  "id": "063",
+  "country": "de",
+  "name": "IKEA München-Eching",
+  "city": "Eching",
+  "lat": 48.30451793,
+  "lng": 11.6342291
+ },
+ {
+  "id": "326",
+  "country": "de",
+  "name": "IKEA Nürnberg/Fürth",
+  "city": "Fürth",
+  "lat": 49.4854251,
+  "lng": 11.0097905
+ },
+ {
+  "id": "069",
+  "country": "de",
+  "name": "IKEA Oldenburg",
+  "city": "Oldenburg",
+  "lat": 53.14015975,
+  "lng": 8.25497267
+ },
+ {
+  "id": "184",
+  "country": "de",
+  "name": "IKEA Osnabrück",
+  "city": "Osnabrück",
+  "lat": 52.2632567,
+  "lng": 7.9714331
+ },
+ {
+  "id": "229",
+  "country": "de",
+  "name": "IKEA Regensburg",
+  "city": "Regensburg",
+  "lat": 49.001756,
+  "lng": 12.1776994
+ },
+ {
+  "id": "092",
+  "country": "de",
+  "name": "IKEA Rostock",
+  "city": "Rostock",
+  "lat": 54.10863267,
+  "lng": 12.051639
+ },
+ {
+  "id": "227",
+  "country": "de",
+  "name": "IKEA Saarlouis",
+  "city": "Saarlouis",
+  "lat": 49.2933549,
+  "lng": 6.7606477
+ },
+ {
+  "id": "369",
+  "country": "de",
+  "name": "IKEA Siegen",
+  "city": "Siegen",
+  "lat": 50.8626233,
+  "lng": 8.0021806
+ },
+ {
+  "id": "224",
+  "country": "de",
+  "name": "IKEA Sindelfingen",
+  "city": "Sindelfingen",
+  "lat": 48.70144946,
+  "lng": 9.00545146
+ },
+ {
+  "id": "328",
+  "country": "de",
+  "name": "IKEA Ulm",
+  "city": "Ulm",
+  "lat": 48.4040207,
+  "lng": 9.9769172
+ },
+ {
+  "id": "322",
+  "country": "de",
+  "name": "IKEA Wallau",
+  "city": "Hofheim-Wallau",
+  "lat": 50.058063,
+  "lng": 8.3717528
+ },
+ {
+  "id": "075",
+  "country": "de",
+  "name": "IKEA Walldorf",
+  "city": "Walldorf",
+  "lat": 49.30552288,
+  "lng": 8.62934443
+ },
+ {
+  "id": "493",
+  "country": "de",
+  "name": "IKEA Wetzlar",
+  "city": "Wetzlar",
+  "lat": 50.5689576,
+  "lng": 8.4974441
+ },
+ {
+  "id": "492",
+  "country": "de",
+  "name": "IKEA Wuppertal",
+  "city": "Wuppertal",
+  "lat": 51.30983,
+  "lng": 7.255747
+ },
+ {
+  "id": "124",
+  "country": "de",
+  "name": "IKEA Würzburg",
+  "city": "Würzburg",
+  "lat": 49.82212726,
+  "lng": 9.98357782
+ },
+ {
+  "id": "1315",
+  "country": "fr",
+  "name": "IKEA Annecy",
+  "city": "Seynod",
+  "lat": 45.8779,
+  "lng": 6.0952
+ },
+ {
+  "id": "018",
+  "country": "fr",
+  "name": "IKEA Avignon",
+  "city": "Vedene",
+  "lat": 43.97830544461172,
+  "lng": 4.891127345993009
+ },
+ {
+  "id": "310",
+  "country": "fr",
+  "name": "IKEA Bayonne",
+  "city": "Saint-Pierre-d'Irube",
+  "lat": 43.480561971611664,
+  "lng": -1.4449194303340758
+ },
+ {
+  "id": "134",
+  "country": "fr",
+  "name": "IKEA Bordeaux",
+  "city": "Bordeaux-Lac",
+  "lat": 44.8851,
+  "lng": -0.5658
+ },
+ {
+  "id": "060",
+  "country": "fr",
+  "name": "IKEA Brest",
+  "city": "Guipavas",
+  "lat": 48.4178,
+  "lng": -4.4413
+ },
+ {
+  "id": "199",
+  "country": "fr",
+  "name": "IKEA Caen",
+  "city": "Fleury-sur-Orne",
+  "lat": 49.145819724429145,
+  "lng": -0.3640724300306005
+ },
+ {
+  "id": "345",
+  "country": "fr",
+  "name": "IKEA Clermont-Ferrand",
+  "city": "Clermont-Ferrand",
+  "lat": 45.8038,
+  "lng": 3.1388
+ },
+ {
+  "id": "086",
+  "country": "fr",
+  "name": "IKEA Dijon",
+  "city": "Dijon",
+  "lat": 47.3408339951798,
+  "lng": 5.064184712334835
+ },
+ {
+  "id": "1314",
+  "country": "fr",
+  "name": "IKEA Epinal",
+  "city": "Epinal",
+  "lat": 48.1876,
+  "lng": 6.4707
+ },
+ {
+  "id": "082",
+  "country": "fr",
+  "name": "IKEA Evry",
+  "city": "Lisses",
+  "lat": 48.59669576528127,
+  "lng": 2.439204012938318
+ },
+ {
+  "id": "389",
+  "country": "fr",
+  "name": "IKEA Franconville",
+  "city": "Franconville",
+  "lat": 48.9867,
+  "lng": 2.2147
+ },
+ {
+  "id": "435",
+  "country": "fr",
+  "name": "IKEA Grenoble",
+  "city": "Saint-Martin-d'Hères",
+  "lat": 45.181343511477905,
+  "lng": 5.775836400587793
+ },
+ {
+  "id": "051",
+  "country": "fr",
+  "name": "IKEA Hénin-Beaumont",
+  "city": "Henin Beaumont",
+  "lat": 50.3921,
+  "lng": 2.9775
+ },
+ {
+  "id": "1144",
+  "country": "fr",
+  "name": "IKEA La Rochelle - Angoulins",
+  "city": "Angoulins",
+  "lat": 46.1061,
+  "lng": -1.0984
+ },
+ {
+  "id": "433",
+  "country": "fr",
+  "name": "IKEA La Valentine",
+  "city": "Marseille",
+  "lat": 43.29317920469646,
+  "lng": 5.481076826113443
+ },
+ {
+  "id": "1301",
+  "country": "fr",
+  "name": "IKEA Le Mans - Les Hunaudières",
+  "city": "Ruadin",
+  "lat": 47.9441,
+  "lng": 0.2394
+ },
+ {
+  "id": "133",
+  "country": "fr",
+  "name": "IKEA Lille",
+  "city": "Lomme",
+  "lat": 50.649828962865364,
+  "lng": 2.9777361431978626
+ },
+ {
+  "id": "1300",
+  "country": "fr",
+  "name": "IKEA Limoges",
+  "city": "Limoges",
+  "lat": 45.8962764,
+  "lng": 1.2798364092
+ },
+ {
+  "id": "562",
+  "country": "fr",
+  "name": "IKEA Lyon - Grand Parilly",
+  "city": "Vénissieux",
+  "lat": 45.718609733846,
+  "lng": 4.881498981564166
+ },
+ {
+  "id": "260",
+  "country": "fr",
+  "name": "IKEA Metz",
+  "city": "La Maxe",
+  "lat": 49.15007792189972,
+  "lng": 6.188146083592657
+ },
+ {
+  "id": "1361",
+  "country": "fr",
+  "name": "IKEA Mont-de-Marsan",
+  "city": "Saint-Pierre-Du-Mont",
+  "lat": 43.8628,
+  "lng": -0.4793
+ },
+ {
+  "id": "402",
+  "country": "fr",
+  "name": "IKEA Montpellier",
+  "city": "Montpellier",
+  "lat": 43.6042,
+  "lng": 3.9244
+ },
+ {
+  "id": "444",
+  "country": "fr",
+  "name": "IKEA Mulhouse",
+  "city": "Morschwiller-le-Bas",
+  "lat": 47.73246437811007,
+  "lng": 7.2828611105020915
+ },
+ {
+  "id": "316",
+  "country": "fr",
+  "name": "IKEA Nantes",
+  "city": "Saint-Herblain CEDEX",
+  "lat": 47.222448649966275,
+  "lng": -1.6318846318518032
+ },
+ {
+  "id": "518",
+  "country": "fr",
+  "name": "IKEA Nice St. Isidore",
+  "city": "Nice",
+  "lat": 43.7057453324836,
+  "lng": 7.195417710302401
+ },
+ {
+  "id": "487",
+  "country": "fr",
+  "name": "IKEA Orléans",
+  "city": "Ardon",
+  "lat": 47.82759342153324,
+  "lng": 1.9188728123597907
+ },
+ {
+  "id": "719",
+  "country": "fr",
+  "name": "IKEA Paris - Italie Deux",
+  "city": "Paris",
+  "lat": 48.830385638900374,
+  "lng": 2.354864903742871
+ },
+ {
+  "id": "645",
+  "country": "fr",
+  "name": "IKEA Paris - Rivoli",
+  "city": "Paris",
+  "lat": 48.860577631039334,
+  "lng": 2.342574597069094
+ },
+ {
+  "id": "131",
+  "country": "fr",
+  "name": "IKEA Paris Nord",
+  "city": "Gonesse",
+  "lat": 48.9755,
+  "lng": 2.4958
+ },
+ {
+  "id": "1141",
+  "country": "fr",
+  "name": "IKEA Pau",
+  "city": "Pau",
+  "lat": 43.306,
+  "lng": -0.3314
+ },
+ {
+  "id": "083",
+  "country": "fr",
+  "name": "IKEA Plaisir",
+  "city": "Plaisir",
+  "lat": 48.82962043902274,
+  "lng": 1.9680016277564276
+ },
+ {
+  "id": "198",
+  "country": "fr",
+  "name": "IKEA Reims",
+  "city": "Thillois",
+  "lat": 49.25817095433124,
+  "lng": 3.9643556161401636
+ },
+ {
+  "id": "177",
+  "country": "fr",
+  "name": "IKEA Rennes",
+  "city": "Pace",
+  "lat": 48.137727043458845,
+  "lng": -1.7634751876241634
+ },
+ {
+  "id": "163",
+  "country": "fr",
+  "name": "IKEA Rouen",
+  "city": "Tourville La Rivière",
+  "lat": 49.33258909155832,
+  "lng": 1.0977066812276535
+ },
+ {
+  "id": "431",
+  "country": "fr",
+  "name": "IKEA Saint-Étienne",
+  "city": "Saint-Etienne",
+  "lat": 45.449160617013696,
+  "lng": 4.41912126991202
+ },
+ {
+  "id": "239",
+  "country": "fr",
+  "name": "IKEA Strasbourg",
+  "city": "Strasbourg",
+  "lat": 48.60045362535256,
+  "lng": 7.730440231219902
+ },
+ {
+  "id": "432",
+  "country": "fr",
+  "name": "IKEA Thiais",
+  "city": "Thiais",
+  "lat": 48.75945082056943,
+  "lng": 2.385285298699516
+ },
+ {
+  "id": "315",
+  "country": "fr",
+  "name": "IKEA Toulon - La Valette-du-Var",
+  "city": "Toulon",
+  "lat": 43.1418,
+  "lng": 6.0111
+ },
+ {
+  "id": "242",
+  "country": "fr",
+  "name": "IKEA Toulouse",
+  "city": "Roques-sur-Garonne",
+  "lat": 43.5171,
+  "lng": 1.3766
+ },
+ {
+  "id": "434",
+  "country": "fr",
+  "name": "IKEA Tours",
+  "city": "Tours",
+  "lat": 47.3761,
+  "lng": 0.718
+ },
+ {
+  "id": "1363",
+  "country": "fr",
+  "name": "IKEA Troyes",
+  "city": "St Parres Aux Tertres",
+  "lat": 48.2946,
+  "lng": 4.1293
+ },
+ {
+  "id": "285",
+  "country": "fr",
+  "name": "IKEA Velizy",
+  "city": "Vélizy-Villacoublay",
+  "lat": 48.7835,
+  "lng": 2.2242
+ },
+ {
+  "id": "240",
+  "country": "fr",
+  "name": "IKEA Villiers",
+  "city": "Villiers-sur-Marne",
+  "lat": 48.82824105605143,
+  "lng": 2.5300976547396212
+ },
+ {
+  "id": "130",
+  "country": "fr",
+  "name": "IKEA Vitrolles",
+  "city": "Vitrolles",
+  "lat": 43.42949830249604,
+  "lng": 5.267922527486527
+ },
+ {
+  "id": "415",
+  "country": "nl",
+  "name": "IKEA Amersfoort",
+  "city": "Amersfoort",
+  "lat": 52.1844,
+  "lng": 5.4183
+ },
+ {
+  "id": "088",
+  "country": "nl",
+  "name": "IKEA Amsterdam",
+  "city": "Amsterdam",
+  "lat": 52.3031,
+  "lng": 4.9494
+ },
+ {
+  "id": "274",
+  "country": "nl",
+  "name": "IKEA Barendrecht",
+  "city": "Barendrecht",
+  "lat": 51.8494,
+  "lng": 4.5123
+ },
+ {
+  "id": "403",
+  "country": "nl",
+  "name": "IKEA Breda",
+  "city": "Breda",
+  "lat": 51.5803,
+  "lng": 4.7291
+ },
+ {
+  "id": "151",
+  "country": "nl",
+  "name": "IKEA Delft",
+  "city": "Delft",
+  "lat": 52.0127,
+  "lng": 4.3816
+ },
+ {
+  "id": "272",
+  "country": "nl",
+  "name": "IKEA Duiven",
+  "city": "Duiven",
+  "lat": 51.9661,
+  "lng": 5.9976
+ },
+ {
+  "id": "087",
+  "country": "nl",
+  "name": "IKEA Eindhoven",
+  "city": "Son",
+  "lat": 51.4976,
+  "lng": 5.4708
+ },
+ {
+  "id": "404",
+  "country": "nl",
+  "name": "IKEA Groningen",
+  "city": "Groningen",
+  "lat": 53.2166,
+  "lng": 6.5897
+ },
+ {
+  "id": "378",
+  "country": "nl",
+  "name": "IKEA Haarlem",
+  "city": "Haarlem",
+  "lat": 52.3847,
+  "lng": 4.6703
+ },
+ {
+  "id": "089",
+  "country": "nl",
+  "name": "IKEA Heerlen",
+  "city": "Heerlen",
+  "lat": 50.8992,
+  "lng": 5.9454
+ },
+ {
+  "id": "312",
+  "country": "nl",
+  "name": "IKEA Hengelo",
+  "city": "Hengelo",
+  "lat": 52.2888,
+  "lng": 6.7687
+ },
+ {
+  "id": "1009",
+  "country": "nl",
+  "name": "IKEA Leeuwarden",
+  "city": "Leeuwarden",
+  "lat": 53.2021,
+  "lng": 5.8234
+ },
+ {
+  "id": "270",
+  "country": "nl",
+  "name": "IKEA Utrecht",
+  "city": "Utrecht",
+  "lat": 52.0625,
+  "lng": 5.1006
+ },
+ {
+  "id": "391",
+  "country": "nl",
+  "name": "IKEA Zwolle",
+  "city": "Zwolle",
+  "lat": 52.5336,
+  "lng": 6.1624
+ }
+]

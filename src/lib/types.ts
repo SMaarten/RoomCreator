@@ -1,3 +1,7 @@
+import type { DesignSession } from "./claude";
+import { t, type Key, type Lang } from "./i18n";
+import type { CatalogLocale } from "./locale";
+
 // Shared domain types.
 //
 // Plan coordinates are in centimetres, x to the right and y down.
@@ -71,9 +75,11 @@ export interface RoomAnalysis {
 }
 
 export interface Preferences {
+  /** Purpose id, e.g. "woonkamer"; see PURPOSES. */
   purpose: string;
   styleId: string;
   budget: number;
+  budgetNote: string;
   wishes: string;
 }
 
@@ -130,6 +136,8 @@ export interface Design {
   tips: string[];
   /** Items Claude named that never came back from an IKEA search. */
   dropped: string[];
+  /** IKEA site the products came from. */
+  locale?: CatalogLocale;
 }
 
 export interface ChatTurn {
@@ -141,41 +149,36 @@ export interface Settings {
   anthropicKey: string;
   geminiKey: string;
   geminiModel: string;
+  lang: Lang;
+  /** Preferred IKEA store; decides which IKEA site products come from. */
+  storeId: string | null;
 }
 
-export interface StyleOption {
+export interface Project {
   id: string;
-  label: string;
-  description: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  photos: Photo[];
+  room: Room;
+  analysis: RoomAnalysis | null;
+  prefs: Preferences;
+  session: DesignSession | null;
+  design: Design | null;
+  chat: ChatTurn[];
+  afterImage: string | null;
+  /** Store chosen for the pick route. */
+  storeId: string | null;
 }
 
-export const STYLES: StyleOption[] = [
-  { id: "scandinavisch", label: "Scandinavisch", description: "Licht hout, zachte neutrale tinten, rustige lijnen." },
-  { id: "japandi", label: "Japandi", description: "Japanse eenvoud en Noordse warmte, natuurlijke materialen." },
-  { id: "modern", label: "Modern minimalistisch", description: "Weinig spullen, strakke vormen, beperkt kleurpalet." },
-  { id: "industrieel", label: "Industrieel", description: "Metaal, donker hout, robuuste texturen." },
-  { id: "mid-century", label: "Mid-century", description: "Warm hout, taps toelopende poten, retro accenten." },
-  { id: "boho", label: "Bohemian", description: "Gelaagd textiel, planten, aardetinten." },
-  { id: "landelijk", label: "Landelijk", description: "Gezellig, verweerd hout, linnen, zachte kleuren." },
-  { id: "kleurrijk", label: "Speels & kleurrijk", description: "Durvende kleuren en patronen, vrolijk." },
-];
+export const STYLE_IDS = ["scandinavisch", "japandi", "modern", "industrieel", "mid-century", "boho", "landelijk", "kleurrijk"] as const;
 
-export const PURPOSES = [
-  "Woonkamer",
-  "Slaapkamer",
-  "Kinderkamer",
-  "Thuiskantoor",
-  "Eetkamer",
-  "Studio (wonen + slapen)",
-  "Logeerkamer",
-];
+export const PURPOSES = ["woonkamer", "slaapkamer", "kinderkamer", "thuiskantoor", "eetkamer", "studio", "logeerkamer"] as const;
 
-export const OPENING_LABELS: Record<OpeningKind, string> = {
-  deur: "Deur",
-  raam: "Raam",
-  radiator: "Radiator",
-  doorgang: "Open doorgang",
-  anders: "Anders",
-};
+export const OPENING_KINDS: OpeningKind[] = ["deur", "raam", "radiator", "doorgang", "anders"];
 
-export const wallLabel = (id: WallId) => `Wand ${id}`;
+export const styleLabel = (id: string) => (STYLE_IDS as readonly string[]).includes(id) ? t(`style.${id}` as Key) : id;
+export const styleDescription = (id: string) => (STYLE_IDS as readonly string[]).includes(id) ? t(`style.${id}.desc` as Key) : "";
+export const purposeLabel = (id: string) => (PURPOSES as readonly string[]).includes(id) ? t(`purpose.${id}` as Key) : id;
+export const openingLabel = (kind: OpeningKind) => t(`kind.${kind}` as Key);
+export const wallLabel = (id: WallId) => t("wall", { id });

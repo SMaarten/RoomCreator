@@ -1,3 +1,4 @@
+import { t } from "../lib/i18n";
 import type { Opening, Room } from "../lib/types";
 import { buildGeometry, isFloorCovering, openingPoints, type PlanPiece, type Wall } from "../lib/layout";
 
@@ -27,7 +28,7 @@ export function FloorPlan({ room, pieces = [], highlight, onSelect }: Props) {
       className="plan"
       viewBox={`${-margin} ${-margin} ${W + margin * 2} ${D + margin * 2}`}
       role="img"
-      aria-label={`Plattegrond, ${g.walls.length} wanden, ${g.area.toFixed(1)} vierkante meter`}
+      aria-label={t("plan.aria", { walls: g.walls.length, area: g.area.toFixed(1) })}
     >
       <defs>
         <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
@@ -138,7 +139,7 @@ function OpeningShape({ o, wall }: { o: Opening; wall: Wall }) {
         points={`${p.sx},${p.sy} ${p.ex},${p.ey} ${p.ex + nx * d},${p.ey + ny * d} ${p.sx + nx * d},${p.sy + ny * d}`}
         className="plan-radiator"
       >
-        <title>Radiator</title>
+        <title>{t("plan.radiator")}</title>
       </polygon>
     );
   }
@@ -150,7 +151,7 @@ function OpeningShape({ o, wall }: { o: Opening; wall: Wall }) {
         <polygon points={gap} />
         <line x1={p.sx - nx * (m - 3)} y1={p.sy - ny * (m - 3)} x2={p.ex - nx * (m - 3)} y2={p.ey - ny * (m - 3)} />
         <line x1={p.sx - nx * (m + 3)} y1={p.sy - ny * (m + 3)} x2={p.ex - nx * (m + 3)} y2={p.ey - ny * (m + 3)} />
-        <title>{`Raam, ${s} cm`}</title>
+        <title>{t("plan.window", { size: s })}</title>
       </g>
     );
   }
@@ -164,7 +165,7 @@ function OpeningShape({ o, wall }: { o: Opening; wall: Wall }) {
         <polygon points={gap} className="gap" />
         <line x1={p.hx} y1={p.hy} x2={p.tx} y2={p.ty} className="leaf" />
         <path d={`M ${p.jx} ${p.jy} A ${s} ${s} 0 0 ${sweep} ${p.tx} ${p.ty}`} className="swing" />
-        <title>{`Deur, ${s} cm, scharnier ${o.hinge ?? "links"}, draait naar ${o.swing ?? "binnen"}`}</title>
+        <title>{`${t("plan.door", { size: s })}, ${t(`hinge.${o.hinge ?? "links"}`)}, ${t(`swing.${o.swing ?? "binnen"}`)}`}</title>
       </g>
     );
   }
@@ -174,7 +175,7 @@ function OpeningShape({ o, wall }: { o: Opening; wall: Wall }) {
     <g className="plan-door">
       <polygon points={gap} className="gap" />
       <line x1={p.sx} y1={p.sy} x2={p.ex} y2={p.ey} className="swing" />
-      <title>{o.kind === "doorgang" ? "Open doorgang" : o.note || "Opening"}</title>
+      <title>{o.kind === "doorgang" ? t("plan.passage") : o.note || t("plan.opening")}</title>
     </g>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { t } from "../lib/i18n";
 import { formatEuro } from "../lib/ikea";
 import type { ChatTurn, Design } from "../lib/types";
 
@@ -6,6 +7,8 @@ interface Props {
   design: Design;
   budget: number;
   issues: string[];
+  /** Shown when the design's products come from another country than the chosen store. */
+  catalogNote: string | null;
   highlight: string | null;
   onHighlight: (key: string | null) => void;
   chat: ChatTurn[];
@@ -21,7 +24,7 @@ interface Props {
 }
 
 export function Results(props: Props) {
-  const { design, budget, issues, highlight, onHighlight, onChooseAlternative, onToggleRemoved, onConfirm, busy } = props;
+  const { design, budget, issues, catalogNote, highlight, onHighlight, onChooseAlternative, onToggleRemoved, onConfirm, busy } = props;
   const active = design.items.map((item, idx) => ({ item, idx })).filter(({ item }) => !item.removed);
   const removed = design.items.map((item, idx) => ({ item, idx })).filter(({ item }) => item.removed);
   const total = active.reduce((sum, { item }) => sum + item.product.price * item.quantity, 0);
@@ -35,20 +38,22 @@ export function Results(props: Props) {
       <div className={`budget ${over ? "over" : ""}`}>
         <div className="budget-line">
           <strong>{formatEuro(total)}</strong>
-          <span className="muted">van {formatEuro(budget)} budget</span>
+          <span className="muted">{t("results.ofBudget", { budget: formatEuro(budget) })}</span>
         </div>
-        <div className="meter" role="meter" aria-valuemin={0} aria-valuemax={budget} aria-valuenow={total} aria-label="Totaal tegenover budget">
+        <div className="meter" role="meter" aria-valuemin={0} aria-valuemax={budget} aria-valuenow={total} aria-label={t("results.meterAria")}>
           <span style={{ width: `${pct}%` }} />
         </div>
-        {over && <p className="error">Dit ontwerp gaat {formatEuro(total - budget)} over je budget. Vraag hieronder om goedkopere keuzes.</p>}
+        {over && <p className="error">{t("results.over", { amount: formatEuro(total - budget) })}</p>}
       </div>
+
+      {catalogNote && <div className="notice">{catalogNote}</div>}
 
       {(issues.length > 0 || design.dropped.length > 0) && (
         <div className="notice">
-          <strong>Controleer even</strong>
+          <strong>{t("results.check")}</strong>
           <ul>
             {issues.map((i) => <li key={i}>{i}</li>)}
-            {design.dropped.map((d) => <li key={d}>{d} werd weggelaten: dat product kwam niet uit de IKEA-catalogus.</li>)}
+            {design.dropped.map((d) => <li key={d}>{t("results.dropped", { item: d })}</li>)}
           </ul>
         </div>
       )}
@@ -75,19 +80,14 @@ export function Results(props: Props) {
               <div className="price">
                 {item.quantity > 1 && <span className="muted">{item.quantity} × {formatEuro(item.product.price)}</span>}
                 <strong>{formatEuro(item.product.price * item.quantity)}</strong>
-                {!item.placement && <span className="muted small">niet op plan</span>}
-                <button
-                  className="link-btn"
-                  disabled={busy}
-                  onClick={() => onToggleRemoved(idx)}
-                  title="Haal dit uit de lijst, bv. omdat je het al hebt"
-                >
-                  Niet nodig
+                {!item.placement && <span className="muted small">{t("results.notOnPlan")}</span>}
+                <button className="link-btn" disabled={busy} onClick={() => onToggleRemoved(idx)} title={t("results.notNeededTitle")}>
+                  {t("results.notNeeded")}
                 </button>
               </div>
               {item.alternatives.length > 0 && (
                 <div className="alts">
-                  <span className="alts-title">{item.alternatives.length === 1 ? "Alternatief" : "Alternatieven"}</span>
+                  <span className="alts-title">{item.alternatives.length === 1 ? t("results.alt") : t("results.alts")}</span>
                   <ul>
                     {item.alternatives.map((alt, altIdx) => {
                       const diff = (alt.product.price - item.product.price) * item.quantity;
@@ -104,10 +104,10 @@ export function Results(props: Props) {
                           <div className="alt-side">
                             <strong>{formatEuro(alt.product.price)}</strong>
                             <span className={`small ${diff > 0 ? "more" : "less"}`}>
-                              {diff === 0 ? "zelfde prijs" : `${diff > 0 ? "+" : "−"}${formatEuro(Math.abs(diff))}`}
+                              {diff === 0 ? t("results.samePrice") : `${diff > 0 ? "+" : "−"}${formatEuro(Math.abs(diff))}`}
                             </span>
                             <button className="btn ghost small" disabled={busy} onClick={() => onChooseAlternative(idx, altIdx)}>
-                              Kies dit
+                              {t("results.choose")}
                             </button>
                           </div>
                         </li>
@@ -123,7 +123,7 @@ export function Results(props: Props) {
 
       {removed.length > 0 && (
         <div className="removed">
-          <h3>Weggelaten</h3>
+          <h3>{t("results.removed")}</h3>
           <ul>
             {removed.map(({ item, idx }) => (
               <li key={item.itemNo}>
@@ -131,7 +131,7 @@ export function Results(props: Props) {
                   <span className="muted">{item.role}:</span> {item.product.name} {item.product.typeName}
                   <span className="muted"> ({formatEuro(item.product.price * item.quantity)})</span>
                 </span>
-                <button className="link-btn" disabled={busy} onClick={() => onToggleRemoved(idx)}>Terugzetten</button>
+                <button className="link-btn" disabled={busy} onClick={() => onToggleRemoved(idx)}>{t("results.restore")}</button>
               </li>
             ))}
           </ul>
@@ -140,16 +140,16 @@ export function Results(props: Props) {
 
       <div className="confirm">
         <button className="btn" disabled={busy || active.length === 0} onClick={onConfirm}>
-          Bevestig mijn keuzes
+          {t("results.confirm")}
         </button>
-        <span className="muted small">Je krijgt een lijst met links naar IKEA en de plek in de winkel.</span>
+        <span className="muted small">{t("results.confirmHint")}</span>
       </div>
 
       {design.tips.length > 0 && (
         <>
-          <h3>Tips</h3>
+          <h3>{t("results.tips")}</h3>
           <ul className="tips">
-            {design.tips.map((t) => <li key={t}>{t}</li>)}
+            {design.tips.map((tip) => <li key={tip}>{tip}</li>)}
           </ul>
         </>
       )}
@@ -162,23 +162,22 @@ export function Results(props: Props) {
 
 function AfterImage({ canRender, rendering, afterImage, onRender }: Props) {
   if (!canRender && !afterImage) {
-    return <p className="muted small">Voeg een Gemini-sleutel toe bij Instellingen om een "na"-foto van je kamer te laten maken.</p>;
+    return <p className="muted small">{t("after.needKey")}</p>;
   }
   return (
     <section className="after">
-      <h3>Zo kan het eruitzien</h3>
+      <h3>{t("after.title")}</h3>
       {afterImage && (
         <figure>
-          <img src={afterImage} alt="Impressie van de ingerichte kamer" />
+          <img src={afterImage} alt={t("after.alt")} />
           <figcaption className="muted small">
-            Een AI-impressie: kleuren en verhoudingen kloppen niet altijd exact.{" "}
-            <a href={afterImage} download="roomkreator-impressie.png">Opslaan</a>
+            {t("after.caption")} <a href={afterImage} download="roomkreator.png">{t("after.save")}</a>
           </figcaption>
         </figure>
       )}
       {canRender && (
         <button className="btn ghost" disabled={rendering} onClick={onRender}>
-          {rendering ? <><span className="spinner" /> Foto maken…</> : afterImage ? "Maak een nieuwe impressie" : "Maak een impressie"}
+          {rendering ? <><span className="spinner" /> {t("after.making")}</> : afterImage ? t("after.new") : t("after.make")}
         </button>
       )}
     </section>
@@ -189,11 +188,11 @@ function Chat({ chat, busy, onFeedback }: Props) {
   const [text, setText] = useState("");
   return (
     <section className="chat">
-      <h3>Bijsturen</h3>
+      <h3>{t("chat.title")}</h3>
       {chat.length > 0 && (
         <ol className="turns">
-          {chat.map((t, i) => (
-            <li key={i} className={t.role}>{t.text}</li>
+          {chat.map((turn, i) => (
+            <li key={i} className={turn.role}>{turn.text}</li>
           ))}
         </ol>
       )}
@@ -208,7 +207,7 @@ function Chat({ chat, busy, onFeedback }: Props) {
         <textarea
           rows={2}
           value={text}
-          placeholder="Bv. goedkopere zitbank, meer opbergruimte, het bed liever onder het raam…"
+          placeholder={t("chat.placeholder")}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -217,7 +216,7 @@ function Chat({ chat, busy, onFeedback }: Props) {
             }
           }}
         />
-        <button className="btn" disabled={busy || !text.trim()}>Pas ontwerp aan</button>
+        <button className="btn" disabled={busy || !text.trim()}>{t("chat.send")}</button>
       </form>
     </section>
   );
