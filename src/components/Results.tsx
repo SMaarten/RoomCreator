@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { t } from "../lib/i18n";
 import { formatEuro } from "../lib/ikea";
-import type { ChatTurn, Design } from "../lib/types";
+import { wallLabel, type ChatTurn, type Design, type Photo } from "../lib/types";
 
 interface Props {
   design: Design;
@@ -21,6 +21,11 @@ interface Props {
   rendering: boolean;
   afterImage: string | null;
   onRender: () => void;
+  photos: Photo[];
+  wallIds: string[];
+  renderPhotoId: string | null;
+  onPickPhoto: (id: string) => void;
+  onSetFacing: (photoId: string, wall: string | undefined) => void;
 }
 
 export function Results(props: Props) {
@@ -165,13 +170,39 @@ export function Results(props: Props) {
   );
 }
 
-function AfterImage({ canRender, rendering, afterImage, onRender }: Props) {
+function AfterImage({ canRender, rendering, afterImage, onRender, photos, wallIds, renderPhotoId, onPickPhoto, onSetFacing }: Props) {
   if (!canRender && !afterImage) {
     return <p className="muted small">{t("after.needKey")}</p>;
   }
+  const photo = photos.find((p) => p.id === renderPhotoId) ?? photos[0];
   return (
     <section className="after">
       <h3>{t("after.title")}</h3>
+      {canRender && photo && (
+        <div className="after-setup">
+          <span className="small strong">{t("after.photo")}</span>
+          <ul className="after-photos" role="radiogroup" aria-label={t("after.photo")}>
+            {photos.map((p) => (
+              <li key={p.id}>
+                <button role="radio" aria-checked={p.id === photo.id} onClick={() => onPickPhoto(p.id)}>
+                  <img src={p.dataUrl} alt="" />
+                  {p.facing && <span>{wallLabel(p.facing)}</span>}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <label className="num">
+            <span>{t("after.facing")}</span>
+            <select value={photo.facing ?? ""} onChange={(e) => onSetFacing(photo.id, e.target.value || undefined)}>
+              <option value="">{t("after.facingChoose")}</option>
+              {wallIds.map((w) => (
+                <option key={w} value={w}>{wallLabel(w)}</option>
+              ))}
+            </select>
+          </label>
+          {!photo.facing && <p className="small notice-inline">{t("after.facingNeeded")}</p>}
+        </div>
+      )}
       {afterImage && (
         <figure>
           <img src={afterImage} alt={t("after.alt")} />

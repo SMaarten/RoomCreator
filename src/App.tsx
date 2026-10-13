@@ -65,6 +65,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const [highlight, setHighlight] = useState<string | null>(null);
+  const [renderPhotoId, setRenderPhotoId] = useState<string | null>(null);
 
   // The translation module reads this on every t() call during render.
   setLang(settings.lang);
@@ -221,12 +222,20 @@ export default function App() {
     update({ design: { ...design, items }, afterImage: null });
   }
 
+  // Base photo for the impression: the chosen one, else the first that has a direction.
+  const renderPhoto = photos.find((p) => p.id === renderPhotoId) ?? photos.find((p) => p.facing) ?? photos[0];
+
   async function render() {
-    if (!design || !photos[0]) return;
+    if (!design || !renderPhoto) return;
     setBusy("render");
     setError(null);
     try {
-      const img = await renderAfterImage(settings.geminiKey, settings.geminiModel || DEFAULT_GEMINI_MODEL, photos[0].dataUrl, design, styleLabel(prefs.styleId), usageMeta("impressie"));
+      const img = await renderAfterImage(
+        settings.geminiKey,
+        settings.geminiModel || DEFAULT_GEMINI_MODEL,
+        { photo: renderPhoto, design, room, analysis, styleLabel: styleLabel(prefs.styleId) },
+        usageMeta("impressie"),
+      );
       update({ afterImage: img });
     } catch (e) {
       setError(e instanceof Error ? e.message : t("after.failed"));
@@ -401,6 +410,11 @@ export default function App() {
                 rendering={busy === "render"}
                 afterImage={project.afterImage}
                 onRender={render}
+                photos={photos}
+                wallIds={geometry.walls.map((w) => w.id)}
+                renderPhotoId={renderPhoto?.id ?? null}
+                onPickPhoto={setRenderPhotoId}
+                onSetFacing={(id, facing) => update({ photos: photos.map((p) => (p.id === id ? { ...p, facing } : p)) })}
               />
             )}
 

@@ -129,6 +129,7 @@ export function SettingsDialog({ open, settings, onSave, onClose }: Props) {
             placeholder={DEFAULT_GEMINI_MODEL}
             onChange={(e) => setDraft({ ...draft, geminiModel: e.target.value })}
           />
+          <small>{t("settings.geminiModelHelp")}</small>
         </label>
 
         <p className="small">
