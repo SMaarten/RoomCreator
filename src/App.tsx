@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FloorPlan } from "./components/FloorPlan";
 import { Results } from "./components/Results";
+import { ShoppingList } from "./components/ShoppingList";
 import { SettingsDialog } from "./components/Settings";
 import { ExistingStep, PhotosStep, PrefsStep, RoomStep } from "./components/Steps";
 import {
@@ -26,6 +27,7 @@ interface Project {
   design: Design | null;
   chat: ChatTurn[];
   afterImage: string | null;
+  storeId: string | null;
 }
 
 const EMPTY: Project = {
@@ -46,6 +48,7 @@ const EMPTY: Project = {
   design: null,
   chat: [],
   afterImage: null,
+  storeId: null,
 };
 
 // Designs saved before alternatives existed.
@@ -55,12 +58,13 @@ function migrateDesign(d: Design): Design {
 
 const DEFAULT_SETTINGS: Settings = { anthropicKey: "", geminiKey: "", geminiModel: DEFAULT_GEMINI_MODEL };
 
-const STEPS = [
+const STEPS: { title: string; hint: string; heading?: string }[] = [
   { title: "Foto's", hint: "Hoe ziet de kamer eruit?" },
   { title: "Afmetingen", hint: "Maten, deuren en ramen" },
   { title: "Wat staat er nu", hint: "Houden of vervangen" },
   { title: "Wensen", hint: "Gebruik, stijl en budget" },
-  { title: "Ontwerp", hint: "Plan en boodschappenlijst" },
+  { title: "Ontwerp", hint: "Plan en keuzes" },
+  { title: "Lijst", hint: "Links en ophaalplaatsen", heading: "Boodschappenlijst" },
 ];
 
 export default function App() {
@@ -100,14 +104,14 @@ export default function App() {
   const geometry = useMemo(() => buildGeometry(room), [room]);
   const roomValid =
     !checkRoom(room, geometry) && room.height >= 150 && room.openings.every((o) => !validateOpening(geometry, o));
-  const unlocked = [true, photos.length > 0, photos.length > 0 && roomValid, !!analysis, !!design || busy === "design"];
+  const unlocked = [true, photos.length > 0, photos.length > 0 && roomValid, !!analysis, !!design || busy === "design", !!design && busy !== "design"];
 
   const pieces: PlanPiece[] = useMemo(() => {
     if (!design) return [];
     const names = new Map(analysis?.existing.map((e) => [e.id, e.name]));
     return [
       ...design.kept.map((k) => ({ key: `k${k.existingId}`, label: names.get(k.existingId) ?? "Bestaand", placement: k.placement, kind: "kept" as const })),
-      ...design.items.flatMap((i, idx) => (i.placement ? [{ key: `n${idx}`, label: i.role, placement: i.placement, kind: "new" as const }] : [])),
+      ...design.items.flatMap((i, idx) => (i.placement && !i.removed ? [{ key: `n${idx}`, label: i.role, placement: i.placement, kind: "new" as const }] : [])),
     ];
   }, [design, analysis]);
   const issues = useMemo(() => checkLayout(geometry, room, pieces), [geometry, room, pieces]);
@@ -194,6 +198,12 @@ export default function App() {
     update({ design: { ...design, items }, afterImage: null });
   }
 
+  function toggleRemoved(itemIdx: number) {
+    if (!design) return;
+    const items = design.items.map((item, i) => (i === itemIdx ? { ...item, removed: !item.removed } : item));
+    update({ design: { ...design, items }, afterImage: null });
+  }
+
   async function render() {
     if (!design || !photos[0]) return;
     setBusy("render");
@@ -253,7 +263,7 @@ export default function App() {
           </ol>
 
           <div className="panel">
-            <h1>{STEPS[step].title}</h1>
+            <h1>{STEPS[step].heading ?? STEPS[step].title}</h1>
             {step === 0 && <PhotosStep photos={photos} wallIds={geometry.walls.map((w) => w.id)} onChange={(p) => update({ photos: p })} />}
             {step === 1 && <RoomStep room={room} onChange={(r) => update({ room: r })} />}
             {step === 2 && (
@@ -283,6 +293,8 @@ export default function App() {
                 busy={busy !== null}
                 onFeedback={feedback}
                 onChooseAlternative={chooseAlternative}
+                onToggleRemoved={toggleRemoved}
+                onConfirm={() => setStep(5)}
                 canRender={!!settings.geminiKey}
                 rendering={busy === "render"}
                 afterImage={project.afterImage}
@@ -290,7 +302,21 @@ export default function App() {
               />
             )}
 
+            {step === 5 && design && (
+              <ShoppingList
+                items={design.items.filter((i) => !i.removed)}
+                storeId={project.storeId}
+                onStoreChange={(storeId) => update({ storeId })}
+              />
+            )}
+
             {error && <p className="error" role="alert">{error}</p>}
+
+            {step === 5 && (
+              <div className="row end nav no-print">
+                <button className="btn ghost" onClick={() => setStep(4)}>Terug naar ontwerp</button>
+              </div>
+            )}
 
             {step < 4 && (
               <div className="row end nav">
@@ -304,9 +330,9 @@ export default function App() {
         </section>
 
         <aside className="drawing" aria-label="Plattegrond">
-          <FloorPlan room={room} pieces={step === 4 ? pieces : []} highlight={highlight} onSelect={setHighlight} />
+          <FloorPlan room={room} pieces={step >= 4 ? pieces : []} highlight={highlight} onSelect={setHighlight} />
           <p className="legend">
-            {step === 4 && design ? (
+            {step >= 4 && design ? (
               <>
                 <span className="sw new" /> Nieuw van IKEA <span className="sw kept" /> Bestaand
               </>

@@ -12,6 +12,8 @@ interface Props {
   busy: boolean;
   onFeedback: (text: string) => void;
   onChooseAlternative: (itemIdx: number, altIdx: number) => void;
+  onToggleRemoved: (itemIdx: number) => void;
+  onConfirm: () => void;
   canRender: boolean;
   rendering: boolean;
   afterImage: string | null;
@@ -19,8 +21,10 @@ interface Props {
 }
 
 export function Results(props: Props) {
-  const { design, budget, issues, highlight, onHighlight, onChooseAlternative, busy } = props;
-  const total = design.items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
+  const { design, budget, issues, highlight, onHighlight, onChooseAlternative, onToggleRemoved, onConfirm, busy } = props;
+  const active = design.items.map((item, idx) => ({ item, idx })).filter(({ item }) => !item.removed);
+  const removed = design.items.map((item, idx) => ({ item, idx })).filter(({ item }) => item.removed);
+  const total = active.reduce((sum, { item }) => sum + item.product.price * item.quantity, 0);
   const over = total > budget;
   const pct = Math.min(100, (total / Math.max(1, budget)) * 100);
 
@@ -50,7 +54,7 @@ export function Results(props: Props) {
       )}
 
       <ul className="products">
-        {design.items.map((item, idx) => {
+        {active.map(({ item, idx }) => {
           const key = `n${idx}`;
           return (
             <li
@@ -72,6 +76,14 @@ export function Results(props: Props) {
                 {item.quantity > 1 && <span className="muted">{item.quantity} × {formatEuro(item.product.price)}</span>}
                 <strong>{formatEuro(item.product.price * item.quantity)}</strong>
                 {!item.placement && <span className="muted small">niet op plan</span>}
+                <button
+                  className="link-btn"
+                  disabled={busy}
+                  onClick={() => onToggleRemoved(idx)}
+                  title="Haal dit uit de lijst, bv. omdat je het al hebt"
+                >
+                  Niet nodig
+                </button>
               </div>
               {item.alternatives.length > 0 && (
                 <div className="alts">
@@ -108,6 +120,30 @@ export function Results(props: Props) {
           );
         })}
       </ul>
+
+      {removed.length > 0 && (
+        <div className="removed">
+          <h3>Weggelaten</h3>
+          <ul>
+            {removed.map(({ item, idx }) => (
+              <li key={item.itemNo}>
+                <span>
+                  <span className="muted">{item.role}:</span> {item.product.name} {item.product.typeName}
+                  <span className="muted"> ({formatEuro(item.product.price * item.quantity)})</span>
+                </span>
+                <button className="link-btn" disabled={busy} onClick={() => onToggleRemoved(idx)}>Terugzetten</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="confirm">
+        <button className="btn" disabled={busy || active.length === 0} onClick={onConfirm}>
+          Bevestig mijn keuzes
+        </button>
+        <span className="muted small">Je krijgt een lijst met links naar IKEA en de plek in de winkel.</span>
+      </div>
 
       {design.tips.length > 0 && (
         <>
