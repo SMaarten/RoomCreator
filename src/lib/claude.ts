@@ -6,13 +6,15 @@ import type {
   BetaTool,
   BetaToolResultBlockParam,
 } from "@anthropic-ai/sdk/resources/beta/messages/messages";
+import { t, type Lang } from "./i18n";
 import { searchIkea } from "./ikea";
+import { DEFAULT_LOCALE, type CatalogLocale } from "./locale";
 import { buildGeometry, doorSwing, openingPoints } from "./layout";
 import { splitDataUrl } from "./image";
 import {
-  OPENING_LABELS,
-  STYLES,
-  wallLabel,
+  purposeLabel,
+  styleDescription,
+  styleLabel,
   type Design,
   type Alternative,
   type DesignItem,
@@ -42,8 +44,16 @@ function client(apiKey: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Shared prompt pieces
+// Shared prompt pieces. Prompts are written in Dutch; the language Claude
+// writes in and the IKEA site it searches are passed in explicitly.
 // ---------------------------------------------------------------------------
+
+const LANG_NL: Record<string, string> = { nl: "Nederlands", fr: "Frans", en: "Engels", de: "Duits" };
+const COUNTRY_NL: Record<string, string> = { be: "België", nl: "Nederland", fr: "Frankrijk", de: "Duitsland" };
+const OPENING_NL: Record<string, string> = { deur: "Deur", raam: "Raam", radiator: "Radiator", doorgang: "Open doorgang", anders: "Opening" };
+
+const writeIn = (lang: Lang) =>
+  `Schrijf alle tekst die de bewoner te zien krijgt in het ${LANG_NL[lang]}${lang === "nl" ? " (Vlaams mag)" : ""}.`;
 
 const pt = (x: number, y: number) => `(${Math.round(x)}, ${Math.round(y)})`;
 
@@ -68,7 +78,7 @@ export function describeRoom(room: Room): string {
       const wall = g.walls.find((w) => w.id === o.wall);
       if (!wall) continue;
       const p = openingPoints(wall, o);
-      let s = `- ${OPENING_LABELS[o.kind]} op wand ${o.wall}, ${o.size} cm breed, van ${pt(p.sx, p.sy)} tot ${pt(p.ex, p.ey)}`;
+      let s = `- ${OPENING_NL[o.kind]} op wand ${o.wall}, ${o.size} cm breed, van ${pt(p.sx, p.sy)} tot ${pt(p.ex, p.ey)}`;
       if (o.kind === "raam" && o.sillHeight != null) s += `, vensterbank op ${o.sillHeight} cm hoogte`;
       if (o.kind === "radiator") s += ", steekt ca. 10 cm de kamer in";
       if (o.kind === "deur") {
@@ -90,7 +100,7 @@ function photoBlocks(photos: Photo[]): BetaContentBlockParam[] {
     const { mediaType, data } = splitDataUrl(p.dataUrl);
     blocks.push({
       type: "text",
-      text: `Foto ${i + 1}${p.facing ? ` (kijkt naar ${wallLabel(p.facing)})` : ""}:`,
+      text: `Foto ${i + 1}${p.facing ? ` (kijkt naar wand ${p.facing})` : ""}:`,
     });
     blocks.push({
       type: "image",
@@ -102,26 +112,26 @@ function photoBlocks(photos: Photo[]): BetaContentBlockParam[] {
 
 function stopCheck(msg: BetaMessage) {
   if (msg.stop_reason === "refusal") {
-    throw new Error("Claude weigerde deze aanvraag. Probeer andere foto's of formuleer je wensen anders.");
+    throw new Error(t("err.refused"));
   }
   if (msg.stop_reason === "max_tokens") {
-    throw new Error("Het antwoord was te lang en werd afgebroken. Probeer het opnieuw.");
+    throw new Error(t("err.tooLong"));
   }
 }
 
 function lastText(msg: BetaMessage): string {
   const text = msg.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join("");
-  if (!text) throw new Error("Claude gaf geen antwoord terug.");
+  if (!text) throw new Error(t("err.noAnswer"));
   return text;
 }
 
 export function friendlyError(err: unknown): string {
-  if (err instanceof Anthropic.AuthenticationError) return "Je Anthropic API-sleutel is ongeldig. Controleer hem bij Instellingen.";
-  if (err instanceof Anthropic.PermissionDeniedError) return "Deze API-sleutel heeft geen toegang tot het model. Controleer je Anthropic-account.";
-  if (err instanceof Anthropic.RateLimitError) return "Te veel aanvragen of tegoed op. Wacht even of controleer je tegoed op console.anthropic.com.";
-  if (err instanceof Anthropic.APIConnectionError) return "Geen verbinding met Anthropic. Controleer je internetverbinding.";
-  if (err instanceof Anthropic.APIError) return `Anthropic-fout ${err.status ?? ""}: ${err.message}`;
-  return err instanceof Error ? err.message : "Er ging iets mis.";
+  if (err instanceof Anthropic.AuthenticationError) return t("err.auth");
+  if (err instanceof Anthropic.PermissionDeniedError) return t("err.permission");
+  if (err instanceof Anthropic.RateLimitError) return t("err.rate");
+  if (err instanceof Anthropic.APIConnectionError) return t("err.connection");
+  if (err instanceof Anthropic.APIError) return t("err.api", { status: err.status ?? "", message: err.message });
+  return err instanceof Error ? err.message : t("err.generic");
 }
 
 // ---------------------------------------------------------------------------
@@ -154,10 +164,10 @@ const ANALYSIS_SCHEMA = {
   },
 };
 
-export async function analyzeRoom(apiKey: string, photos: Photo[], room: Room): Promise<RoomAnalysis> {
+export async function analyzeRoom(apiKey: string, photos: Photo[], room: Room, lang: Lang): Promise<RoomAnalysis> {
   const system = [
     "Je bent een ervaren interieurarchitect. Je bekijkt foto's van één kamer en beschrijft wat er nu staat.",
-    "Antwoord in het Nederlands (Vlaams mag).",
+    writeIn(lang),
     "- roomType: wat voor kamer het lijkt te zijn.",
     "- description: twee à drie zinnen over de huidige staat, sfeer, vloer en muren.",
     "- palette: 3 tot 6 dominante kleuren als hex-code (#rrggbb).",
@@ -200,20 +210,22 @@ export async function analyzeRoom(apiKey: string, photos: Photo[], room: Room): 
 // Step 2: design with a live IKEA search loop
 // ---------------------------------------------------------------------------
 
-const SEARCH_TOOL: BetaTool = {
-  name: "search_ikea",
-  description:
-    "Zoek in de actuele catalogus van IKEA België (Nederlandstalig). Geeft tot 10 producten terug met artikelnummer (itemNo), naam, type, afmetingen (breedte x diepte x hoogte in cm, soms enkel breedte of diameter), prijs in EUR en kleuren. Gebruik Nederlandse zoektermen zoals 'zitbank 3-zits', 'vloerlamp', 'boekenkast smal', 'vloerkleed 200x300'. Zoek gerust meerdere keren met andere woorden als de resultaten niet passen.",
-  strict: true,
-  input_schema: {
-    type: "object",
-    additionalProperties: false,
-    required: ["query"],
-    properties: {
-      query: { type: "string", description: "Zoekterm in het Nederlands" },
+function searchTool(locale: CatalogLocale): BetaTool {
+  const lang = LANG_NL[locale.lang];
+  return {
+    name: "search_ikea",
+    description: `Zoek in de actuele catalogus van IKEA ${COUNTRY_NL[locale.country]} (${lang}talige site). Geeft tot 10 producten terug met artikelnummer (itemNo), naam, type, afmetingen (breedte x diepte x hoogte in cm, soms enkel breedte of diameter), prijs in EUR en kleuren. Zoek met termen in het ${lang}, zoals je ze in een winkel zou intypen (bv. een type meubel plus een maat of kenmerk). Zoek gerust meerdere keren met andere woorden als de resultaten niet passen.`,
+    strict: true,
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["query"],
+      properties: {
+        query: { type: "string", description: `Zoekterm in het ${lang}` },
+      },
     },
-  },
-};
+  };
+}
 
 const placementProps = {
   onPlan: { type: "boolean" },
@@ -271,7 +283,7 @@ const DESIGN_SCHEMA = {
   },
 };
 
-const DESIGN_SYSTEM = `Je bent een interieurarchitect die kamers inricht met producten van IKEA België. Je werkt met echte maten en een echt budget. Antwoord in het Nederlands.
+const designSystem = (lang: Lang, locale: CatalogLocale) => `Je bent een interieurarchitect die kamers inricht met producten van IKEA ${COUNTRY_NL[locale.country]}. Je werkt met echte maten en een echt budget. ${writeIn(lang)} Productnamen en types neem je over zoals de catalogus ze geeft.
 
 Werkwijze:
 1. Bekijk de foto's, de kamermaten, de openingen en wat de bewoner wil houden.
@@ -299,6 +311,7 @@ Alternatieven:
 Budget:
 - De som van prijs × quantity van alle hoofdkeuzes blijft onder het budget. Reken het na voor je antwoordt. Alternatieven tellen niet mee.
 - Besteed het grootste deel aan wat het meeste verschil maakt; kies desnoods goedkopere alternatieven.
+- Volg een opmerking van de bewoner over het budget (bv. waar meer of minder mag) zolang het totaal binnen het budget blijft.
 
 Velden:
 - summary: 3 à 5 zinnen over het concept en de indeling.
@@ -332,6 +345,13 @@ export interface DesignSession {
   messages: BetaMessageParam[];
   /** Every product Claude has seen, by itemNo. */
   catalog: Record<string, IkeaProduct>;
+  /**
+   * Fixed for the whole conversation: changing the system prompt or tools
+   * later would invalidate the earlier turns. A later language switch is
+   * passed as a note in the next feedback message instead.
+   */
+  lang?: Lang;
+  locale?: CatalogLocale;
 }
 
 export function startDesignMessages(
@@ -340,7 +360,6 @@ export function startDesignMessages(
   analysis: RoomAnalysis,
   prefs: Preferences,
 ): BetaMessageParam[] {
-  const style = STYLES.find((s) => s.id === prefs.styleId);
   const keep = analysis.existing.filter((e) => e.keep);
   const replace = analysis.existing.filter((e) => !e.keep);
   const text = [
@@ -358,9 +377,10 @@ export function startDesignMessages(
     replace.length ? replace.map((e) => `- ${e.name}`).join("\n") : "- niets",
     "",
     "WENSEN",
-    `Gebruik: ${prefs.purpose}`,
-    `Stijl: ${style ? `${style.label} — ${style.description}` : prefs.styleId}`,
+    `Gebruik: ${purposeLabel(prefs.purpose)}`,
+    `Stijl: ${styleLabel(prefs.styleId)}${styleDescription(prefs.styleId) ? ` — ${styleDescription(prefs.styleId)}` : ""}`,
     `Budget: maximaal € ${prefs.budget}`,
+    prefs.budgetNote.trim() ? `Opmerking bij het budget: ${prefs.budgetNote.trim()}` : "",
     prefs.wishes.trim() ? `Extra wensen: ${prefs.wishes.trim()}` : "",
     "",
     "Maak een ontwerp.",
@@ -377,6 +397,8 @@ export async function runDesign(
   const api = client(apiKey);
   const messages = [...session.messages];
   const catalog = { ...session.catalog };
+  const lang = session.lang ?? "nl";
+  const locale = session.locale ?? DEFAULT_LOCALE;
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     onProgress({ kind: "thinking" });
@@ -392,8 +414,8 @@ export async function runDesign(
           effort: "high",
           format: { type: "json_schema", schema: DESIGN_SCHEMA },
         },
-        system: DESIGN_SYSTEM,
-        tools: [SEARCH_TOOL],
+        system: designSystem(lang, locale),
+        tools: [searchTool(locale)],
         messages,
       })
       .finalMessage();
@@ -411,7 +433,7 @@ export async function runDesign(
           }
           onProgress({ kind: "search", query });
           try {
-            const products = await searchIkea(query, 10);
+            const products = await searchIkea(query, 10, locale);
             products.forEach((p) => (catalog[p.itemNo] = p));
             onProgress({ kind: "found", query, count: products.length });
             const compact = products.map((p) => ({
@@ -442,16 +464,17 @@ export async function runDesign(
     }
 
     const raw = JSON.parse(lastText(msg)) as RawDesign;
-    return { session: { messages, catalog }, design: toDesign(raw, catalog) };
+    return { session: { ...session, messages, catalog }, design: { ...toDesign(raw, catalog), locale } };
   }
-  throw new Error("Het ontwerp bleef zoeken zonder af te ronden. Probeer het opnieuw.");
+  throw new Error(t("err.endless"));
 }
 
-export function addFeedback(session: DesignSession, feedback: string, current: Design): DesignSession {
+export function addFeedback(session: DesignSession, feedback: string, current: Design, uiLang: Lang): DesignSession {
   // The user may have swapped in alternatives since the last answer.
   const kept = current.items.filter((i) => !i.removed);
   const removed = current.items.filter((i) => i.removed);
   const choices = kept.map((i) => `- ${i.role}: ${i.product.name} ${i.product.typeName} (${i.itemNo})`).join("\n");
+  const switched = uiLang !== (session.lang ?? "nl") ? `\n\n${writeIn(uiLang)} Dit geldt vanaf nu.` : "";
   const skipped = removed.length
     ? `\n\nWeggelaten door de bewoner (heeft dit al of vindt het overbodig, niet opnieuw voorstellen en niet in het ontwerp opnemen):\n${removed.map((i) => `- ${i.role}: ${i.product.name} ${i.product.typeName}`).join("\n")}`
     : "";
@@ -461,7 +484,7 @@ export function addFeedback(session: DesignSession, feedback: string, current: D
       ...session.messages,
       {
         role: "user",
-        content: `Huidige keuzes van de bewoner (eventueel met gekozen alternatieven):\n${choices}${skipped}\n\nFeedback van de bewoner: ${feedback}\n\nPas het ontwerp aan en geef het volledige ontwerp terug, met alternatieven.`,
+        content: `Huidige keuzes van de bewoner (eventueel met gekozen alternatieven):\n${choices}${skipped}\n\nFeedback van de bewoner: ${feedback}\n\nPas het ontwerp aan en geef het volledige ontwerp terug, met alternatieven.${switched}`,
       },
     ],
   };

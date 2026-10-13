@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { FloorPlan } from "./components/FloorPlan";
+import { ProjectsDialog } from "./components/Projects";
 import { Results } from "./components/Results";
-import { ShoppingList } from "./components/ShoppingList";
 import { SettingsDialog } from "./components/Settings";
+import { ShoppingList } from "./components/ShoppingList";
 import { ExistingStep, PhotosStep, PrefsStep, RoomStep } from "./components/Steps";
 import {
   addFeedback,
@@ -14,91 +15,85 @@ import {
   type Progress,
 } from "./lib/claude";
 import { DEFAULT_GEMINI_MODEL, renderAfterImage } from "./lib/gemini";
-import { buildGeometry, checkLayout, checkRoom, migrateRoom, validateOpening, type PlanPiece } from "./lib/layout";
-import { load, remove, save } from "./lib/storage";
-import { STYLES, type ChatTurn, type Design, type Photo, type Preferences, type Room, type RoomAnalysis, type Settings } from "./lib/types";
+import { browserLang, LANGS, setLang, t, type Key, type Lang } from "./lib/i18n";
+import { buildGeometry, checkLayout, checkRoom, validateOpening, type PlanPiece } from "./lib/layout";
+import { catalogLocale, DEFAULT_LOCALE, findStore } from "./lib/locale";
+import {
+  deleteProject,
+  emptyProject,
+  exportProject,
+  importProject,
+  listProjects,
+  loadProject,
+  newId,
+  openInitialProject,
+  saveProject,
+  setCurrentProjectId,
+} from "./lib/projects";
+import { load, save } from "./lib/storage";
+import { styleLabel, type ChatTurn, type Project, type Settings } from "./lib/types";
 
-interface Project {
-  photos: Photo[];
-  room: Room;
-  analysis: RoomAnalysis | null;
-  prefs: Preferences;
-  session: DesignSession | null;
-  design: Design | null;
-  chat: ChatTurn[];
-  afterImage: string | null;
-  storeId: string | null;
-}
-
-const EMPTY: Project = {
-  photos: [],
-  room: {
-    name: "",
-    height: 260,
-    walls: [
-      { id: "w1", length: 400, angle: 0 },
-      { id: "w2", length: 350, angle: 90 },
-      { id: "w3", length: 400, angle: 180 },
-    ],
-    openings: [],
-  },
-  analysis: null,
-  prefs: { purpose: "Woonkamer", styleId: "scandinavisch", budget: 1500, wishes: "" },
-  session: null,
-  design: null,
-  chat: [],
-  afterImage: null,
+const DEFAULT_SETTINGS: Settings = {
+  anthropicKey: "",
+  geminiKey: "",
+  geminiModel: DEFAULT_GEMINI_MODEL,
+  lang: "nl",
   storeId: null,
 };
 
-// Designs saved before alternatives existed.
-function migrateDesign(d: Design): Design {
-  return { ...d, items: d.items.map((i) => ({ ...i, alternatives: i.alternatives ?? [] })) };
-}
-
-const DEFAULT_SETTINGS: Settings = { anthropicKey: "", geminiKey: "", geminiModel: DEFAULT_GEMINI_MODEL };
-
-const STEPS: { title: string; hint: string; heading?: string }[] = [
-  { title: "Foto's", hint: "Hoe ziet de kamer eruit?" },
-  { title: "Afmetingen", hint: "Maten, deuren en ramen" },
-  { title: "Wat staat er nu", hint: "Houden of vervangen" },
-  { title: "Wensen", hint: "Gebruik, stijl en budget" },
-  { title: "Ontwerp", hint: "Plan en keuzes" },
-  { title: "Lijst", hint: "Links en ophaalplaatsen", heading: "Boodschappenlijst" },
+const STEPS: { title: Key; hint: Key; heading?: Key }[] = [
+  { title: "step.photos", hint: "step.photos.hint" },
+  { title: "step.room", hint: "step.room.hint" },
+  { title: "step.existing", hint: "step.existing.hint" },
+  { title: "step.prefs", hint: "step.prefs.hint" },
+  { title: "step.design", hint: "step.design.hint" },
+  { title: "step.list", hint: "step.list.hint", heading: "step.list.heading" },
 ];
 
+const startStep = (p: Project) => (p.design ? 4 : 0);
+
 export default function App() {
-  const [project, setProject] = useState<Project>(EMPTY);
+  const [project, setProject] = useState<Project>(() => emptyProject());
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [loaded, setLoaded] = useState(false);
   const [step, setStep] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [projectsOpen, setProjectsOpen] = useState(false);
+  const [projectsVersion, setProjectsVersion] = useState(0);
   const [busy, setBusy] = useState<null | "analyze" | "design" | "render">(null);
   const [error, setError] = useState<string | null>(null);
   const [log, setLog] = useState<string[]>([]);
   const [highlight, setHighlight] = useState<string | null>(null);
 
-  // Restore the last project and keys.
+  // The translation module reads this on every t() call during render.
+  setLang(settings.lang);
+
+  // Restore settings and the last open project.
   useEffect(() => {
-    Promise.all([load<Project>("project"), load<Settings>("settings"), load<number>("step")]).then(([p, s, st]) => {
-      if (p) setProject({ ...EMPTY, ...p, room: migrateRoom(p.room), design: p.design && migrateDesign(p.design) });
-      if (s) setSettings({ ...DEFAULT_SETTINGS, ...s });
-      if (typeof st === "number") setStep(st);
+    Promise.all([load<Settings>("settings"), openInitialProject()]).then(([s, p]) => {
+      const merged = { ...DEFAULT_SETTINGS, lang: browserLang(), ...s };
+      setLang(merged.lang);
+      setSettings(merged);
+      setProject(p);
+      setStep(startStep(p));
+      setCurrentProjectId(p.id);
       if (!s?.anthropicKey) setSettingsOpen(true);
       setLoaded(true);
     });
   }, []);
 
+  // Auto-save the open project.
   useEffect(() => {
     if (!loaded) return;
-    const t = setTimeout(() => save("project", project), 400);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => saveProject(project).then(() => setProjectsVersion((v) => v + 1)), 400);
+    return () => clearTimeout(timer);
   }, [project, loaded]);
-  useEffect(() => {
-    if (loaded) save("step", step);
-  }, [step, loaded]);
 
-  const update = (patch: Partial<Project>) => setProject((p) => ({ ...p, ...patch }));
+  const update = (patch: Partial<Project>) => setProject((p) => ({ ...p, ...patch, updatedAt: Date.now() }));
+  const saveSettings = (s: Settings) => {
+    setSettings(s);
+    save("settings", s);
+  };
   const { photos, room, analysis, prefs, design } = project;
 
   const geometry = useMemo(() => buildGeometry(room), [room]);
@@ -110,11 +105,21 @@ export default function App() {
     if (!design) return [];
     const names = new Map(analysis?.existing.map((e) => [e.id, e.name]));
     return [
-      ...design.kept.map((k) => ({ key: `k${k.existingId}`, label: names.get(k.existingId) ?? "Bestaand", placement: k.placement, kind: "kept" as const })),
+      ...design.kept.map((k) => ({ key: `k${k.existingId}`, label: names.get(k.existingId) ?? t("existing.fallback"), placement: k.placement, kind: "kept" as const })),
       ...design.items.flatMap((i, idx) => (i.placement && !i.removed ? [{ key: `n${idx}`, label: i.role, placement: i.placement, kind: "new" as const }] : [])),
     ];
-  }, [design, analysis]);
-  const issues = useMemo(() => checkLayout(geometry, room, pieces), [geometry, room, pieces]);
+  }, [design, analysis, settings.lang]);
+  const issues = useMemo(() => checkLayout(geometry, room, pieces), [geometry, room, pieces, settings.lang]);
+
+  const currentLocale = catalogLocale(settings.storeId, settings.lang);
+  const designLocale = design?.locale ?? DEFAULT_LOCALE;
+  const catalogNote =
+    design && designLocale.country !== currentLocale.country
+      ? t("catalog.otherCountry", { country: t(`country.${designLocale.country}`) })
+      : null;
+  // Pick-route store: the project's choice, else the preferred store if it sells these products.
+  const preferred = findStore(settings.storeId);
+  const listStoreId = project.storeId ?? (preferred?.country === designLocale.country ? preferred.id : null);
 
   function requireKey(): boolean {
     if (settings.anthropicKey) return true;
@@ -127,7 +132,7 @@ export default function App() {
     setBusy("analyze");
     setError(null);
     try {
-      const a = await analyzeRoom(settings.anthropicKey, photos, room);
+      const a = await analyzeRoom(settings.anthropicKey, photos, room, settings.lang);
       update({ analysis: a });
     } catch (e) {
       setError(friendlyError(e));
@@ -137,8 +142,9 @@ export default function App() {
   }
 
   function onProgress(p: Progress) {
-    if (p.kind === "search") setLog((l) => [...l, `Zoekt in IKEA: “${p.query}”`]);
-    if (p.kind === "found") setLog((l) => l.map((line) => (line === `Zoekt in IKEA: “${p.query}”` ? `${line}: ${p.count} resultaten` : line)));
+    const line = t("log.search", { q: p.kind === "thinking" ? "" : p.query });
+    if (p.kind === "search") setLog((l) => [...l, line]);
+    if (p.kind === "found") setLog((l) => l.map((x) => (x === line ? `${x}: ${t("log.found", { n: p.count })}` : x)));
   }
 
   async function design_(session: DesignSession, chat: ChatTurn[]) {
@@ -149,7 +155,7 @@ export default function App() {
     setStep(4);
     try {
       const res = await runDesign(settings.anthropicKey, session, onProgress);
-      const assistant: ChatTurn | null = chat.length ? { role: "assistant", text: `Aangepast: ${res.design.summary}` } : null;
+      const assistant: ChatTurn | null = chat.length ? { role: "assistant", text: t("chat.adjusted", { summary: res.design.summary }) } : null;
       update({ session: res.session, design: res.design, chat: assistant ? [...chat, assistant] : chat, afterImage: null });
     } catch (e) {
       setError(friendlyError(e));
@@ -160,14 +166,22 @@ export default function App() {
 
   function startDesign() {
     if (!analysis) return;
-    design_({ messages: startDesignMessages(photos, room, analysis, prefs), catalog: {} }, []);
+    design_(
+      {
+        messages: startDesignMessages(photos, room, analysis, prefs),
+        catalog: {},
+        lang: settings.lang,
+        locale: currentLocale,
+      },
+      [],
+    );
   }
 
   function feedback(text: string) {
     if (!project.session || !design) return;
     const chat: ChatTurn[] = [...project.chat, { role: "user", text }];
     update({ chat });
-    design_(addFeedback(project.session, text, design), chat);
+    design_(addFeedback(project.session, text, design, settings.lang), chat);
   }
 
   // Swap an alternative in as the main choice; the old main becomes an alternative.
@@ -209,23 +223,82 @@ export default function App() {
     setBusy("render");
     setError(null);
     try {
-      const style = STYLES.find((s) => s.id === prefs.styleId)?.label ?? prefs.styleId;
-      const img = await renderAfterImage(settings.geminiKey, settings.geminiModel || DEFAULT_GEMINI_MODEL, photos[0].dataUrl, design, style);
+      const img = await renderAfterImage(settings.geminiKey, settings.geminiModel || DEFAULT_GEMINI_MODEL, photos[0].dataUrl, design, styleLabel(prefs.styleId));
       update({ afterImage: img });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Impressie maken mislukt.");
+      setError(e instanceof Error ? e.message : t("after.failed"));
     } finally {
       setBusy(null);
     }
   }
 
-  function reset() {
-    if (!confirm("Een nieuwe kamer beginnen? Foto's, maten en het huidige ontwerp worden gewist.")) return;
-    setProject(EMPTY);
-    setStep(0);
+  // ---- projects ----
+
+  async function switchTo(p: Project) {
+    await saveProject(project);
+    setProject(p);
+    setStep(startStep(p));
     setLog([]);
     setError(null);
-    remove("project");
+    setHighlight(null);
+    await setCurrentProjectId(p.id);
+    setProjectsVersion((v) => v + 1);
+  }
+
+  async function openProject(id: string) {
+    const p = await loadProject(id);
+    if (p) {
+      await switchTo(p);
+      setProjectsOpen(false);
+    }
+  }
+
+  async function newProject() {
+    const p = emptyProject();
+    await saveProject(p);
+    await switchTo(p);
+    setProjectsOpen(false);
+  }
+
+  async function saveCopy() {
+    const now = Date.now();
+    const copy: Project = { ...project, id: newId(), name: t("project.copyName", { name: project.name }), createdAt: now, updatedAt: now };
+    await saveProject(copy);
+    await switchTo(copy);
+  }
+
+  async function renameProject(id: string, name: string) {
+    if (id === project.id) {
+      update({ name });
+      return;
+    }
+    const p = await loadProject(id);
+    if (p) {
+      await saveProject({ ...p, name, updatedAt: Date.now() });
+      setProjectsVersion((v) => v + 1);
+    }
+  }
+
+  async function removeProject(id: string) {
+    await deleteProject(id);
+    if (id === project.id) {
+      const next = (await listProjects())[0];
+      const p = (next && (await loadProject(next.id))) || emptyProject();
+      setProject(p);
+      setStep(startStep(p));
+      await setCurrentProjectId(p.id);
+    }
+    setProjectsVersion((v) => v + 1);
+  }
+
+  async function importFile(file: File) {
+    try {
+      const p = await importProject(file);
+      await switchTo(p);
+      setProjectsOpen(false);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : t("projects.importError"));
+    }
   }
 
   // Moving forward from step 3 (wishes) starts the design.
@@ -244,26 +317,51 @@ export default function App() {
           <span>RoomKreator</span>
         </div>
         <nav className="row">
-          <button className="btn ghost small" onClick={reset}>Nieuwe kamer</button>
-          <button className="btn ghost small" onClick={() => setSettingsOpen(true)}>Instellingen</button>
+          <div className="lang-switch" role="group" aria-label={t("nav.language")}>
+            {LANGS.map((l: Lang) => (
+              <button
+                key={l}
+                aria-pressed={settings.lang === l}
+                lang={l}
+                onClick={() => saveSettings({ ...settings, lang: l })}
+              >
+                {l.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          <button className="btn ghost small" onClick={() => setProjectsOpen(true)}>{t("nav.projects")}</button>
+          <button className="btn ghost small" onClick={() => setSettingsOpen(true)}>{t("nav.settings")}</button>
         </nav>
       </header>
 
       <main className="layout">
         <section className="wizard">
+          <div className="project-bar">
+            <label className="project-name">
+              <span className="sr-only">{t("project.nameLabel")}</span>
+              <input
+                value={project.name}
+                aria-label={t("project.nameLabel")}
+                onChange={(e) => update({ name: e.target.value })}
+                onBlur={() => !project.name.trim() && update({ name: t("project.defaultName") })}
+              />
+            </label>
+            <span className="muted small">{t("project.saved")}</span>
+          </div>
+
           <ol className="stepper">
             {STEPS.map((s, i) => (
               <li key={s.title} className={i === step ? "current" : i < step ? "done" : ""}>
                 <button disabled={!unlocked[i] || busy !== null} onClick={() => setStep(i)} aria-current={i === step ? "step" : undefined}>
                   <span className="n">{i + 1}</span>
-                  <span className="t">{s.title}<small>{s.hint}</small></span>
+                  <span className="t">{t(s.title)}<small>{t(s.hint)}</small></span>
                 </button>
               </li>
             ))}
           </ol>
 
           <div className="panel">
-            <h1>{STEPS[step].heading ?? STEPS[step].title}</h1>
+            <h1>{t(STEPS[step].heading ?? STEPS[step].title)}</h1>
             {step === 0 && <PhotosStep photos={photos} wallIds={geometry.walls.map((w) => w.id)} onChange={(p) => update({ photos: p })} />}
             {step === 1 && <RoomStep room={room} onChange={(r) => update({ room: r })} />}
             {step === 2 && (
@@ -275,10 +373,10 @@ export default function App() {
                 onChange={(a) => update({ analysis: a })}
               />
             )}
-            {step === 3 && <PrefsStep prefs={prefs} onChange={(p) => update({ prefs: p })} />}
+            {step === 3 && <PrefsStep key={project.id} prefs={prefs} onChange={(p) => update({ prefs: p })} />}
             {step === 4 && busy === "design" && (
               <div className="step-body working" aria-live="polite">
-                <p className="lead"><span className="spinner" /> Claude ontwerpt je kamer en zoekt passende producten. Dit duurt één à drie minuten.</p>
+                <p className="lead"><span className="spinner" /> {t("working.lead")}</p>
                 <ul className="log">{log.map((l, i) => <li key={i}>{l}</li>)}</ul>
               </div>
             )}
@@ -287,6 +385,7 @@ export default function App() {
                 design={design}
                 budget={prefs.budget}
                 issues={issues}
+                catalogNote={catalogNote}
                 highlight={highlight}
                 onHighlight={setHighlight}
                 chat={project.chat}
@@ -305,7 +404,8 @@ export default function App() {
             {step === 5 && design && (
               <ShoppingList
                 items={design.items.filter((i) => !i.removed)}
-                storeId={project.storeId}
+                locale={designLocale}
+                storeId={listStoreId}
                 onStoreChange={(storeId) => update({ storeId })}
               />
             )}
@@ -314,30 +414,30 @@ export default function App() {
 
             {step === 5 && (
               <div className="row end nav no-print">
-                <button className="btn ghost" onClick={() => setStep(4)}>Terug naar ontwerp</button>
+                <button className="btn ghost" onClick={() => setStep(4)}>{t("nav.backToDesign")}</button>
               </div>
             )}
 
             {step < 4 && (
               <div className="row end nav">
-                {step > 0 && <button className="btn ghost" onClick={() => setStep(step - 1)}>Terug</button>}
+                {step > 0 && <button className="btn ghost" onClick={() => setStep(step - 1)}>{t("nav.back")}</button>}
                 <button className="btn" disabled={!canNext} onClick={next}>
-                  {step === 3 ? (design ? "Maak een nieuw ontwerp" : "Maak mijn ontwerp") : "Volgende"}
+                  {step === 3 ? (design ? t("nav.makeNewDesign") : t("nav.makeDesign")) : t("nav.next")}
                 </button>
               </div>
             )}
           </div>
         </section>
 
-        <aside className="drawing" aria-label="Plattegrond">
+        <aside className="drawing" aria-label={t("plan.label")}>
           <FloorPlan room={room} pieces={step >= 4 ? pieces : []} highlight={highlight} onSelect={setHighlight} />
           <p className="legend">
             {step >= 4 && design ? (
               <>
-                <span className="sw new" /> Nieuw van IKEA <span className="sw kept" /> Bestaand
+                <span className="sw new" /> {t("legend.new")} <span className="sw kept" /> {t("legend.kept")}
               </>
             ) : (
-              <>Schaal: elk vakje is 50 × 50 cm</>
+              <>{t("legend.scale")}</>
             )}
           </p>
         </aside>
@@ -348,10 +448,22 @@ export default function App() {
         settings={settings}
         onClose={() => setSettingsOpen(false)}
         onSave={(s) => {
-          setSettings(s);
-          save("settings", s);
+          saveSettings(s);
           setSettingsOpen(false);
         }}
+      />
+      <ProjectsDialog
+        open={projectsOpen}
+        currentId={project.id}
+        version={projectsVersion}
+        onClose={() => setProjectsOpen(false)}
+        onOpen={openProject}
+        onNew={newProject}
+        onSaveCopy={saveCopy}
+        onRename={renameProject}
+        onDelete={removeProject}
+        onExport={() => exportProject(project)}
+        onImport={importFile}
       />
     </div>
   );

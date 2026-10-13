@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { splitDataUrl } from "./image";
 import type { Design } from "./types";
 
@@ -57,7 +58,7 @@ export async function renderAfterImage(
   }
 
   const image = findImage(json);
-  if (!image) throw new Error("Gemini gaf geen afbeelding terug. Probeer het opnieuw of kies een ander model bij Instellingen.");
+  if (!image) throw new Error(t("err.geminiNoImage"));
   return `data:${image.mime};base64,${image.data}`;
 }
 
@@ -65,8 +66,10 @@ async function readOrThrow(res: Response): Promise<unknown> {
   const json = await res.json().catch(() => null);
   if (!res.ok) {
     const msg = (json as any)?.error?.message ?? res.statusText;
-    if (res.status === 400 && /api key/i.test(msg)) throw new Error("Je Gemini API-sleutel is ongeldig. Controleer hem bij Instellingen.");
-    throw new Error(`Gemini-fout ${res.status}: ${msg}`);
+    if (res.status === 400 && /api key/i.test(msg)) throw new Error(t("err.geminiKey"));
+    // Image models have no free tier: a free key gets a 429 with a zero limit.
+    if (res.status === 429 && /free tier|limit: 0/i.test(msg)) throw new Error(t("err.geminiPaid"));
+    throw new Error(t("err.gemini", { status: res.status, message: msg }));
   }
   return json;
 }
