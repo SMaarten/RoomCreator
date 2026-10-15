@@ -64,6 +64,7 @@ export function PhotosStep({ photos, wallIds, onChange }: { photos: Photo[]; wal
       >
         {busy ? t("photos.resizing") : photos.length ? t("photos.addMore") : t("photos.choose")}
       </div>
+      <p className="privacy">{t("privacy.photos")}</p>
       {error && <p className="error">{t("photos.error")}</p>}
       {photos.length > 0 && (
         <ul className="photos">

@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { t } from "../lib/i18n";
 import type { Opening, Room } from "../lib/types";
 import { buildGeometry, isFloorCovering, openingPoints, type PlanPiece, type Wall } from "../lib/layout";
@@ -49,7 +50,7 @@ export function FloorPlan({ room, pieces = [], highlight, onSelect }: Props) {
         return wall ? <OpeningShape key={o.id} o={o} wall={wall} /> : null;
       })}
 
-      {ordered.map((p) => {
+      {ordered.map((p, idx) => {
         const { x, y, width, depth } = p.placement;
         const label = p.label;
         const labelFs = Math.min(fs * 0.85, width / Math.max(4, label.length * 0.62), depth * 0.5);
@@ -60,7 +61,7 @@ export function FloorPlan({ room, pieces = [], highlight, onSelect }: Props) {
             key={p.key}
             className={`plan-piece ${p.kind} ${rug ? "rug" : ""} ${active ? "active" : ""}`}
             onClick={onSelect ? () => onSelect(p.key) : undefined}
-            style={onSelect ? { cursor: "pointer" } : undefined}
+            style={{ ...(onSelect ? { cursor: "pointer" } : {}), "--i": idx } as CSSProperties}
           >
             <rect x={x} y={y} width={width} height={depth} rx={2} />
             {p.kind === "kept" && <rect x={x} y={y} width={width} height={depth} fill="url(#hatch)" />}

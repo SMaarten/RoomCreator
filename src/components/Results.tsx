@@ -172,12 +172,18 @@ export function Results(props: Props) {
 
 function AfterImage({ canRender, rendering, afterImage, onRender, photos, wallIds, renderPhotoId, onPickPhoto, onSetFacing }: Props) {
   if (!canRender && !afterImage) {
-    return <p className="muted small">{t("after.needKey")}</p>;
+    return (
+      <>
+        <p className="muted small">{t("after.needKey")}</p>
+        <p className="privacy">{t("privacy.render")}</p>
+      </>
+    );
   }
   const photo = photos.find((p) => p.id === renderPhotoId) ?? photos[0];
   return (
     <section className="after">
       <h3>{t("after.title")}</h3>
+      <p className="privacy">{t("privacy.render")}</p>
       {canRender && photo && (
         <div className="after-setup">
           <span className="small strong">{t("after.photo")}</span>

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FloorPlan } from "./components/FloorPlan";
+import { Hero, HowItWorks, SiteFooter } from "./components/Landing";
 import { ProjectsDialog } from "./components/Projects";
 import { Results } from "./components/Results";
 import { SettingsDialog } from "./components/Settings";
@@ -66,6 +67,9 @@ export default function App() {
   const [log, setLog] = useState<string[]>([]);
   const [highlight, setHighlight] = useState<string | null>(null);
   const [renderPhotoId, setRenderPhotoId] = useState<string | null>(null);
+  const [pastHero, setPastHero] = useState(false);
+  const studioRef = useRef<HTMLDivElement>(null);
+  const firstStep = useRef(true);
 
   // The translation module reads this on every t() call during render.
   setLang(settings.lang);
@@ -79,10 +83,30 @@ export default function App() {
       setProject(p);
       setStep(startStep(p));
       setCurrentProjectId(p.id);
-      if (!s?.anthropicKey) setSettingsOpen(true);
       setLoaded(true);
     });
   }, []);
+
+  // The header sits on the blue hero first, then turns solid once the hero is behind it.
+  useEffect(() => {
+    const hero = document.getElementById("top");
+    if (!hero) return;
+    const io = new IntersectionObserver(([e]) => setPastHero(!e.isIntersecting), { rootMargin: "-64px 0px 0px 0px" });
+    io.observe(hero);
+    return () => io.disconnect();
+  }, []);
+
+  // Moving to another step brings the top of the studio back into view.
+  useEffect(() => {
+    if (firstStep.current) {
+      firstStep.current = false;
+      return;
+    }
+    const el = studioRef.current;
+    if (!el || el.getBoundingClientRect().top >= 0) return;
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "start" });
+  }, [step]);
 
   // Auto-save the open project.
   useEffect(() => {
@@ -323,12 +347,16 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="top">
-        <div className="brand">
+      <header className="top" data-over={pastHero ? "page" : "hero"}>
+        <a className="brand" href="#top">
           <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="3" width="26" height="26" /><path d="M3 20h12v9" /></svg>
           <span>RoomKreator</span>
-        </div>
-        <nav className="row">
+        </a>
+        <nav className="site-nav" aria-label="RoomKreator">
+          <a href="#how">{t("nav.how")}</a>
+          <a href="#studio">{t("nav.studio")}</a>
+        </nav>
+        <div className="row tools">
           <div className="lang-switch" role="group" aria-label={t("nav.language")}>
             {LANGS.map((l: Lang) => (
               <button
@@ -343,37 +371,47 @@ export default function App() {
           </div>
           <button className="btn ghost small" onClick={() => setProjectsOpen(true)}>{t("nav.projects")}</button>
           <button className="btn ghost small" onClick={() => setSettingsOpen(true)}>{t("nav.settings")}</button>
-        </nav>
+        </div>
       </header>
 
-      <main className="layout">
-        <section className="wizard">
-          <div className="project-bar">
-            <label className="project-name">
-              <span className="sr-only">{t("project.nameLabel")}</span>
-              <input
-                value={project.name}
-                aria-label={t("project.nameLabel")}
-                onChange={(e) => update({ name: e.target.value })}
-                onBlur={() => !project.name.trim() && update({ name: t("project.defaultName") })}
-              />
-            </label>
-            <span className="muted small">{t("project.saved")}</span>
+      <main>
+        <Hero hasProject={photos.length > 0 || !!design} />
+        <HowItWorks />
+
+        <section className="studio" id="studio" aria-labelledby="studio-title">
+          <div className="studio-head" ref={studioRef}>
+            <h2 id="studio-title" className="studio-title">{t("studio.title")}</h2>
+            <div className="project-bar">
+              <label className="project-name">
+                <span className="sr-only">{t("project.nameLabel")}</span>
+                <input
+                  value={project.name}
+                  aria-label={t("project.nameLabel")}
+                  onChange={(e) => update({ name: e.target.value })}
+                  onBlur={() => !project.name.trim() && update({ name: t("project.defaultName") })}
+                />
+              </label>
+              <span className="muted small">{t("project.saved")}</span>
+            </div>
           </div>
 
-          <ol className="stepper">
-            {STEPS.map((s, i) => (
-              <li key={s.title} className={i === step ? "current" : i < step ? "done" : ""}>
-                <button disabled={!unlocked[i] || busy !== null} onClick={() => setStep(i)} aria-current={i === step ? "step" : undefined}>
-                  <span className="n">{i + 1}</span>
-                  <span className="t">{t(s.title)}<small>{t(s.hint)}</small></span>
-                </button>
-              </li>
-            ))}
-          </ol>
+          <div className="stepper-bar">
+            <ol className="stepper">
+              {STEPS.map((s, i) => (
+                <li key={s.title} className={i === step ? "current" : i < step ? "done" : ""}>
+                  <button disabled={!unlocked[i] || busy !== null} onClick={() => setStep(i)} aria-current={i === step ? "step" : undefined}>
+                    <span className="n">{i + 1}</span>
+                    <span className="t">{t(s.title)}<small>{t(s.hint)}</small></span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </div>
 
+          <div className="layout">
+        <section className="wizard">
           <div className="panel">
-            <h1>{t(STEPS[step].heading ?? STEPS[step].title)}</h1>
+            <h2 className="panel-title">{t(STEPS[step].heading ?? STEPS[step].title)}</h2>
             {step === 0 && <PhotosStep photos={photos} wallIds={geometry.walls.map((w) => w.id)} onChange={(p) => update({ photos: p })} />}
             {step === 1 && <RoomStep room={room} onChange={(r) => update({ room: r })} />}
             {step === 2 && (
@@ -458,7 +496,11 @@ export default function App() {
             )}
           </p>
         </aside>
+          </div>
+        </section>
       </main>
+
+      <SiteFooter />
 
       <SettingsDialog
         open={settingsOpen}

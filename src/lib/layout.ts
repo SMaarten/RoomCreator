@@ -229,7 +229,7 @@ export interface PlanPiece {
 
 /** Rugs and mats may sit under other furniture. */
 export function isFloorCovering(label: string): boolean {
-  return /kleed|tapijt|mat\b|vloerkleed|rug/i.test(label);
+  return /kleed|tapijt|tapis|mat\b|vloerkleed|rug/i.test(label);
 }
 
 function overlaps(a: Placement, b: Placement, tolerance = 2): boolean {
