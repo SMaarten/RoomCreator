@@ -1,0 +1,26 @@
+# RoomKreator proxy on Cloudflare Workers. Deploy with `npm run deploy`.
+# Secrets (not in this file): ANTHROPIC_API_KEY, GEMINI_API_KEY, optional ACCESS_CODE.
+name = "roomkreator-proxy"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = true
+preview_urls = false
+
+[vars]
+# Sites allowed to call the proxy, comma-separated, no trailing slash.
+ALLOWED_ORIGINS = "https://smaarten.github.io,http://localhost:5173"
+CLAUDE_MODELS = "claude-opus-5-5"
+GEMINI_MODELS = "gemini-nano-banana-2.1,gemini-3-pro-image"
+# Requests per day. One design is roughly 10–25 Claude requests; a render is 1–2 Gemini requests.
+CLAUDE_PER_IP_PER_DAY = "150"
+CLAUDE_TOTAL_PER_DAY = "1500"
+GEMINI_PER_IP_PER_DAY = "10"
+GEMINI_TOTAL_PER_DAY = "100"
+
+[[durable_objects.bindings]]
+name = "BUDGET"
+class_name = "Budget"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Budget"]

@@ -148,6 +148,8 @@ export interface ChatTurn {
 export interface Settings {
   anthropicKey: string;
   geminiKey: string;
+  /** Only used with the site proxy, when its owner set a code. */
+  accessCode: string;
   geminiModel: string;
   lang: Lang;
   /** Preferred IKEA store; decides which IKEA site products come from. */

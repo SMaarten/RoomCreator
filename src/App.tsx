@@ -31,6 +31,7 @@ import {
   saveProject,
   setCurrentProjectId,
 } from "./lib/projects";
+import { PROXY_URL, setAccessCode } from "./lib/proxy";
 import { load, save } from "./lib/storage";
 import type { UsageKind } from "./lib/usage";
 import { styleLabel, type ChatTurn, type Project, type Settings } from "./lib/types";
@@ -38,6 +39,7 @@ import { styleLabel, type ChatTurn, type Project, type Settings } from "./lib/ty
 const DEFAULT_SETTINGS: Settings = {
   anthropicKey: "",
   geminiKey: "",
+  accessCode: "",
   geminiModel: DEFAULT_GEMINI_MODEL,
   lang: "nl",
   storeId: null,
@@ -73,12 +75,14 @@ export default function App() {
 
   // The translation module reads this on every t() call during render.
   setLang(settings.lang);
+  setAccessCode(settings.accessCode);
 
   // Restore settings and the last open project.
   useEffect(() => {
     Promise.all([load<Settings>("settings"), openInitialProject()]).then(([s, p]) => {
       const merged = { ...DEFAULT_SETTINGS, lang: browserLang(), ...s };
       setLang(merged.lang);
+      setAccessCode(merged.accessCode);
       setSettings(merged);
       setProject(p);
       setStep(startStep(p));
@@ -150,7 +154,7 @@ export default function App() {
   const usageMeta = (kind: UsageKind) => ({ projectId: project.id, projectName: project.name, kind, runId: newId() });
 
   function requireKey(): boolean {
-    if (settings.anthropicKey) return true;
+    if (settings.anthropicKey || PROXY_URL) return true;
     setSettingsOpen(true);
     return false;
   }
@@ -444,7 +448,7 @@ export default function App() {
                 onChooseAlternative={chooseAlternative}
                 onToggleRemoved={toggleRemoved}
                 onConfirm={() => setStep(5)}
-                canRender={!!settings.geminiKey}
+                canRender={!!settings.geminiKey || !!PROXY_URL}
                 rendering={busy === "render"}
                 afterImage={project.afterImage}
                 onRender={render}

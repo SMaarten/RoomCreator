@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { DEFAULT_GEMINI_MODEL } from "../lib/gemini";
 import { t, type Key } from "../lib/i18n";
 import { catalogLocale, COUNTRIES, currentPosition, nearestStore, STORES } from "../lib/locale";
+import { PROXY_URL } from "../lib/proxy";
 import type { Settings } from "../lib/types";
 
 interface Props {
@@ -51,7 +52,7 @@ export function SettingsDialog({ open, settings, onSave, onClose }: Props) {
         method="dialog"
         onSubmit={(e) => {
           e.preventDefault();
-          onSave({ ...draft, anthropicKey: draft.anthropicKey.trim(), geminiKey: draft.geminiKey.trim() });
+          onSave({ ...draft, anthropicKey: draft.anthropicKey.trim(), geminiKey: draft.geminiKey.trim(), accessCode: draft.accessCode.trim() });
         }}
       >
         <h2>{t("settings.title")}</h2>
@@ -89,10 +90,24 @@ export function SettingsDialog({ open, settings, onSave, onClose }: Props) {
           </p>
         </fieldset>
 
+        {PROXY_URL && <p>{t("settings.proxyIntro")}</p>}
         <p className="muted">{t("settings.intro")}</p>
 
+        {PROXY_URL && (
+          <label className="field">
+            <span>{t("settings.accessCode")}</span>
+            <input
+              type="password"
+              autoComplete="off"
+              value={draft.accessCode}
+              onChange={(e) => setDraft({ ...draft, accessCode: e.target.value })}
+            />
+            <small>{t("settings.accessCodeHelp")}</small>
+          </label>
+        )}
+
         <label className="field">
-          <span>{t("settings.anthropic")}</span>
+          <span>{t("settings.anthropic")}{PROXY_URL && ` ${t("settings.optional")}`}</span>
           <input
             type="password"
             autoComplete="off"

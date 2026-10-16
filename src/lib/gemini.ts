@@ -1,12 +1,13 @@
 import { t } from "./i18n";
 import { splitDataUrl } from "./image";
 import { buildGeometry } from "./layout";
+import { PROXY_URL, proxyErrorText, proxyHeaders } from "./proxy";
 import { cameraFor, describeFromCamera, planPng, type PlanLabel } from "./scene";
 import { trackGemini, type UsageMeta } from "./usage";
 import type { Design, Photo, Room, RoomAnalysis } from "./types";
 
 // Gemini image editing ("Nano Banana"). Called straight from the browser with
-// the user's own key. The model gets the room photo, a numbered top-down plan
+// the user's own key, or through the site's proxy when there is none. The model gets the room photo, a numbered top-down plan
 // with the camera position, and the real IKEA product photos as references,
 // so it can put the right pieces in the right places.
 
@@ -27,12 +28,13 @@ type Part = { kind: "text"; text: string } | { kind: "image"; mime: string; data
 
 export async function renderAfterImage(apiKey: string, model: string, input: RenderInput, meta?: UsageMeta): Promise<string> {
   const { parts, aspect } = await buildParts(input);
+  const { base, headers } = endpoint(apiKey);
 
   // Current API: Interactions endpoint.
   const interactions = (withAspect: boolean) =>
-    fetch(`${BASE}/interactions`, {
+    fetch(`${base}/interactions`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+      headers,
       body: JSON.stringify({
         model,
         input: parts.map((p) => (p.kind === "text" ? { type: "text", text: p.text } : { type: "image", mime_type: p.mime, data: p.data })),
@@ -50,9 +52,9 @@ export async function renderAfterImage(apiKey: string, model: string, input: Ren
   let json: unknown;
   if (res.status === 404) {
     // Older image models only exist on generateContent.
-    const legacy = await fetch(`${BASE}/models/${encodeURIComponent(model)}:generateContent`, {
+    const legacy = await fetch(`${base}/models/${encodeURIComponent(model)}:generateContent`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+      headers,
       body: JSON.stringify({
         contents: [{ parts: parts.map((p) => (p.kind === "text" ? { text: p.text } : { inline_data: { mime_type: p.mime, data: p.data } })) }],
         generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
@@ -194,9 +196,16 @@ async function closestAspect(dataUrl: string): Promise<string> {
   });
 }
 
+function endpoint(apiKey: string): { base: string; headers: Record<string, string> } {
+  if (!apiKey && PROXY_URL) return { base: `${PROXY_URL}/gemini/v1beta`, headers: { "Content-Type": "application/json", ...proxyHeaders() } };
+  return { base: BASE, headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey } };
+}
+
 async function readOrThrow(res: Response): Promise<unknown> {
   const json = await res.json().catch(() => null);
   if (!res.ok) {
+    const viaProxy = proxyErrorText(json);
+    if (viaProxy) throw new Error(viaProxy);
     const msg = (json as any)?.error?.message ?? res.statusText;
     if (res.status === 400 && /api key/i.test(msg)) throw new Error(t("err.geminiKey"));
     // Image models have no free tier: a free key gets a 429 with a zero limit.

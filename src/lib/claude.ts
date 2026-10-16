@@ -8,6 +8,7 @@ import type {
 } from "@anthropic-ai/sdk/resources/beta/messages/messages";
 import { t, type Lang } from "./i18n";
 import { searchIkea } from "./ikea";
+import { PROXY_URL, proxyErrorText, proxyHeaders } from "./proxy";
 import { DEFAULT_LOCALE, type CatalogLocale } from "./locale";
 import { trackClaude, type UsageMeta } from "./usage";
 import { buildGeometry, doorSwing, openingPoints } from "./layout";
@@ -41,6 +42,11 @@ export type Progress =
   | { kind: "found"; query: string; count: number };
 
 function client(apiKey: string) {
+  // Without a key of their own, visitors go through the site's proxy, which
+  // adds the real key server-side.
+  if (!apiKey && PROXY_URL) {
+    return new Anthropic({ apiKey: "via-proxy", baseURL: `${PROXY_URL}/anthropic`, defaultHeaders: proxyHeaders(), dangerouslyAllowBrowser: true });
+  }
   // The key is the user's own and stays in their browser; requests go straight
   // to api.anthropic.com. That is why browser use is allowed here.
   return new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
@@ -129,6 +135,8 @@ function lastText(msg: BetaMessage): string {
 }
 
 export function friendlyError(err: unknown): string {
+  const viaProxy = err instanceof Anthropic.APIError ? proxyErrorText(err.error) : null;
+  if (viaProxy) return viaProxy;
   if (err instanceof Anthropic.AuthenticationError) return t("err.auth");
   if (err instanceof Anthropic.PermissionDeniedError) return t("err.permission");
   if (err instanceof Anthropic.RateLimitError) return t("err.rate");

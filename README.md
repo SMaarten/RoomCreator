@@ -98,6 +98,51 @@ Elke push naar `main` bouwt de site en zet ze op GitHub Pages via
 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). Eenmalig:
 *Settings → Pages → Source: GitHub Actions*.
 
+## Gedeelde toegang (proxy)
+
+Standaard vult elke bezoeker zijn eigen sleutels in. Wil je dat bezoekers
+zonder sleutel kunnen werken, dan zet je de proxy in [`proxy/`](proxy/) op
+Cloudflare Workers (gratis plan volstaat). Die bewaart jouw sleutels als
+geheimen en stuurt alleen de oproepen door die de app doet.
+
+```
+Browser ──zonder eigen sleutel──▶ Worker (jouw sleutels) ──▶ Anthropic / Google
+Browser ──met eigen sleutel─────────────────────────────────▶ Anthropic / Google
+```
+
+Beveiliging, in te stellen in [`proxy/wrangler.toml`](proxy/wrangler.toml):
+
+- alleen verzoeken van `ALLOWED_ORIGINS` (je GitHub Pages-adres en localhost);
+- alleen de modellen in `CLAUDE_MODELS` en `GEMINI_MODELS`;
+- daglimieten per bezoeker en in totaal (een ontwerp is ongeveer 10–25
+  Claude-verzoeken, een impressie 1–2 Gemini-verzoeken);
+- optioneel een toegangscode die bezoekers invullen bij *Instellingen*.
+
+Stel daarnaast een uitgavenlimiet in bij
+[Anthropic](https://console.anthropic.com/settings/limits) en
+[Google](https://aistudio.google.com/spend). Dat is de enige harde grens op
+wat de proxy je kan kosten.
+
+Eenmalig opzetten:
+
+```bash
+cd proxy
+npm install
+npx wrangler login
+npx wrangler secret put ANTHROPIC_API_KEY
+npx wrangler secret put GEMINI_API_KEY      # weglaten = geen gedeelde impressies
+npx wrangler secret put ACCESS_CODE         # optioneel
+npm run deploy                              # toont https://roomkreator-proxy.<jij>.workers.dev
+```
+
+Zet dat adres daarna in GitHub als repository-variabele `PROXY_URL`
+(*Settings → Secrets and variables → Actions → Variables*) en push opnieuw.
+Zonder die variabele werkt de site zoals voordien, met eigen sleutels.
+
+Lokaal testen: zet de sleutels in `proxy/.dev.vars` (`ANTHROPIC_API_KEY=…`),
+start `npm run dev` in `proxy/`, en start de site met
+`VITE_PROXY_URL=http://localhost:8787 npm run dev`.
+
 ## Code
 
 | Bestand | Rol |
@@ -113,6 +158,8 @@ Elke push naar `main` bouwt de site en zet ze op GitHub Pages via
 | [`src/lib/i18n.ts`](src/lib/i18n.ts) | Vertalingen NL/FR/EN |
 | [`src/lib/usage.ts`](src/lib/usage.ts) | Verbruikslogboek en kostberekening |
 | [`src/admin/Admin.tsx`](src/admin/Admin.tsx) | Verbruikspagina (admin.html) |
+| [`src/lib/proxy.ts`](src/lib/proxy.ts) | Gedeelde toegang via de proxy |
+| [`proxy/src/index.ts`](proxy/src/index.ts) | De proxy zelf (Cloudflare Worker) |
 | [`src/App.tsx`](src/App.tsx) | Stappen, status en opslag |
 
 Vite + React + TypeScript, `@anthropic-ai/sdk` in de browser.
